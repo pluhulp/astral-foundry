@@ -7,12 +7,12 @@ function researchRequirements(t){if(!t)return[{done:false,label:'Unknown technol
 ]}
 function researchBlockers(t){return researchRequirements(t).filter(r=>!r.done)}
 const checkedResearch=research;research=function(id){const t=techs.find(t=>t.id===id);if(!t||has(id))return;const missing=researchBlockers(t);if(missing.length){toast(missing[0].label);return}checkedResearch(id)};
-function expeditionRequirements(target=state.stage+1){if(target<=state.stage)return[{done:false,label:'This outpost is already established.'}];if(target>=worlds.length)return[{done:false,label:'All destinations explored.'}];const c=missionCost();return [
+function expeditionRequirements(target=state.stage+1){if(target<=state.stage)return[{done:false,label:'This outpost is already established.'}];if(target>=worlds.length)return[{done:false,label:'All destinations explored.'}];const c=target===state.stage+1?missionCost():{fuel:worlds[target][4]*UNIT_SCALE,metal:100*Math.pow(2.5,target-1)*UNIT_SCALE,science:30*Math.pow(2.3,target-1)*UNIT_SCALE};return [
  {done:target===state.stage+1,label:target===state.stage+1?'Next destination in range':'Establish '+worlds[target-1][0]+' first'},
  {done:!state.mission,label:state.mission?'Expedition already in flight':'Launch bay available'},
  {done:!state.paused,label:state.paused?'Resume simulation to travel':'Simulation running',action:"state.paused=false;save();render()"},
  {done:has('rocketry'),label:'Liquid-fuel rocketry',action:"go('research');focusTech('rocketry')"},
- ...(state.stage>=10?[{done:has('warp'),label:'Alcubierre geometry',action:"go('research');focusTech('warp')"}]:[]),
+ ...(target>10?[{done:has('warp'),label:'Alcubierre geometry',action:"go('research');focusTech('warp')"}]:[]),
  ...Object.entries(c).map(([k,v])=>({done:state.r[k]+1e-8>=v,label:R[k][0]+': '+fmt(state.r[k])+' / '+fmt(v)+(cap(k)<v?' · expand storage':''),action:"viewResource('"+k+"')"}))
 ]}
 function launchTo(target){const missing=expeditionRequirements(target).filter(r=>!r.done);if(missing.length){toast(missing[0].label);return}launch();render()}
