@@ -15,3 +15,8 @@ Serve this directory with any static HTTP server. GitHub Pages publishes the rep
 Run `node economy.test.cjs` for save migration, production, prices, storage, surveys, offline production and machine recipe checks.
 
 Saves remain in browser local storage. Use Settings → Export save to move between devices or hosts.
+
+### Orbital interface update
+The interface now uses orbital command, a selectable 3D solar map, a focused machine workbench, and explicit research/expedition requirements. Launch controls are restored on both the home and destination views. Save schema and economy denominations are unchanged.
+
+Validation: `node economy.test.cjs` covers all 114 research unlocks, Earth–Luna–Mercury launches, blocked and duplicate launches, save migration, independent storage, and all 239 machine recipes. Earth texture: Three.js examples, `textures/planets/earth_atmos_2048.jpg`.

@@ -1,7 +1,7 @@
 const vm=require('node:vm'),fs=require('node:fs'),assert=require('node:assert/strict');
 const empty=()=>{},node={addEventListener:empty,style:{setProperty:empty},classList:{add:empty,remove:empty,toggle:empty},dataset:{}};
 const context=vm.createContext({console,Date,Math,JSON,Object,Array,Number,String,Set,Map,setTimeout:()=>0,clearTimeout:empty,document:{addEventListener:empty,getElementById:()=>node,querySelector:()=>null,querySelectorAll:()=>[],documentElement:node},window:{addEventListener:empty},localStorage:{setItem:empty,getItem:()=>null},assert});
-for(const f of ['game.js','universe.js','polish.js','bridge.js','economy.js'])vm.runInContext(fs.readFileSync(f,'utf8'),context,{filename:f});
+for(const f of ['game.js','universe.js','polish.js','bridge.js','economy.js','navigation.js'])vm.runInContext(fs.readFileSync(f,'utf8'),context,{filename:f});
 vm.runInContext(`
 render=()=>{};updateLive=()=>{};showCinema=()=>{};save=()=>{};toast=()=>{};
 const near=(a,b)=>assert.ok(Math.abs(a-b)<1e-6, a+' != '+b);
@@ -17,5 +17,28 @@ state=fresh();state.stage=10;state.megas=['wonder'];state.r.science=100000;state
 state=fresh();state.m.drill=1;state.paused=true;simulate(5);assert.equal(state.r.metal,300);state.paused=false;state.off.drill=true;simulate(5);assert.equal(state.r.metal,300);
 state=fresh();state.m.drill=1;for(let i=0;i<28800;i++)simulate(1);assert.equal(state.r.metal,10000);
 for(const m of machines){state=fresh();state.stage=15;state.cinema=false;state.tech=techs.map(t=>t.id);state.wonders=wonders.map(w=>w.id);state.storageLevels=Object.fromEntries(Object.keys(R).map(k=>[k,35]));state.r=Object.fromEntries(Object.keys(R).map(k=>[k,1e16]));state.m[m.id]=1;simulate(1);assert.ok(Object.values(state.r).every(v=>Number.isFinite(v)&&v>=0));assert.ok(Object.values(m.cost).every(v=>v>0));assert.ok(Object.values(m.out).every(v=>v>0))}
+
+state=fresh();state.cinema=false;
+let beforeFuel=state.r.fuel;launchTo(1);assert.equal(state.mission,null);assert.equal(state.r.fuel,beforeFuel);
+state.storageLevels=Object.fromEntries(Object.keys(R).map(k=>[k,35]));
+for(let stage=0;stage<worlds.length;stage++){
+ state.stage=stage;state.r.science=cap('science');
+ let candidates=techs.filter(t=>t.stage<=stage&&!has(t.id));
+ while(candidates.length){let ready=candidates.filter(t=>t.pre.every(has));assert.ok(ready.length,'Research cycle or missing prerequisite');for(const t of ready){state.r.science=cap('science');assert.equal(researchBlockers(t).length,0,t.id);research(t.id);assert.ok(has(t.id),t.id)}candidates=candidates.filter(t=>!has(t.id))}
+}
+assert.equal(state.tech.length,techs.length);
+state=fresh();state.cinema=false;state.tech=['industry','chemistry','electronics','rocketry'];
+for(const dest of [1,2]){
+ for(const [k,v] of Object.entries(missionCost()))state.r[k]=v;
+ const fuelBefore=state.r.fuel;launchTo(dest+1);assert.equal(state.mission,null);assert.equal(state.r.fuel,fuelBefore);
+ launchTo(dest);assert.equal(state.mission.target,dest);assert.equal(state.r.fuel,0);
+ const paid=JSON.stringify(state.r);launchTo(dest);assert.equal(JSON.stringify(state.r),paid);
+ for(let i=0;i<200&&state.mission;i++)simulate(1);
+ assert.equal(state.stage,dest);assert.equal(state.mission,null);assert.ok(validate(state));
+}
+state=fresh();const gated=techs.find(t=>t.id==='rocketry');assert.ok(researchBlockers(gated).some(r=>r.label.includes('Research points')));
+state.storageLevels.science=35;state.r.science=cap('science');for(const t of techs.filter(t=>t.stage===0))state.tech.push(t.id);
+assert.equal(researchBlockers(gated).length,0);
+console.log('PASS: all 114 research unlocks, blocked/skipped/double launches, Earth → Luna → Mercury, valid arrival saves.');
 console.log('PASS: fresh economy, save migration/idempotence, starter rates/build/gather, independent storage, research/launch/upgrade prices, survey cost/reward, pause, 8h simulation, '+machines.length+' machine recipes.');
 `,context);
