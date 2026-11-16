@@ -35,8 +35,11 @@ Buildless static HTML/CSS/JS. Serve this directory using any static HTTP server.
 Run `node --test *.test.cjs` from this directory.
 
 ## Validation and limits
-13 automated suites cover all mission setups and objective reachability, action rules, role restrictions, objectives, transports, recruitment, supply, upgrades, fog, repeated AI turns, and model geometry. Browser QA checked movement, turn cycling, recruitment, campaign locks, custom coastal skirmishes, naval recruitment, and saved state restoration using the software 3D renderer. Hardware WebGL was unavailable in the QA browser.
+15 automated checks cover all mission setups and objective reachability, action rules, role restrictions, objectives, transports, recruitment, supply, upgrades, fog, repeated AI turns, and model geometry. Browser QA checked movement, turn cycling, recruitment, campaign locks, custom coastal skirmishes, naval recruitment, and saved state restoration using the software 3D renderer. Hardware WebGL was unavailable in the QA browser.
 
 This is a first playable release. The campaign is not exhaustively balance-tested. Single-player only; no multiplayer, naval stealth, fuel/ammunition simulation, destructible terrain, or full recreation of another game's systems. School device policies and performance vary.
 
 Save data stays in the browser under `frontline-atlas-v1`; it is separate from Astral Foundry saves. Export backups from Settings.
+
+## Clarity and performance update
+Terrain props are reduced, movement uses a boundary outline, and health bars appear for selected or damaged units. Repeated static terrain uses WebGL instancing. The software renderer caches projected static geometry; idle scenes stop redrawing and hidden tabs pause. Active rendering targets 60 fps on WebGL and 30 fps in compatibility mode, subject to device capability. Enemy turn pacing is shorter. Two additional checks verify cache invalidation and instancing transforms.
