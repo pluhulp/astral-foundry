@@ -1,0 +1,3 @@
+const test=require('node:test'),assert=require('node:assert/strict'),vm=require('node:vm'),fs=require('node:fs');
+const T=require('./three.min.js'),A=require('./core.js');let context={THREE:T,Atlas:A,window:{}};vm.createContext(context);vm.runInContext(fs.readFileSync(__dirname+'/render.js','utf8'),context);
+test('all 64 faction/unit models contain finite original geometry',()=>{for(let type of Object.keys(A.D))for(let team of [0,1]){let g=context.window.AtlasModels.model(type,team),count=0;g.updateMatrixWorld(true);g.traverse(o=>{if(o.isMesh){count++;assert(o.geometry.attributes.position.count>0);assert(o.matrixWorld.elements.every(Number.isFinite));}});assert(count>=5,type);}});
