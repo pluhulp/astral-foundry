@@ -1,0 +1,20 @@
+const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),A=require('./core.js');
+const source=fs.readFileSync(__dirname+'/app.js','utf8');
+
+function harness(A,source,initial={}){
+ const nodes=new Map(),listeners={},data=new Map(Object.entries(initial));
+ const node=id=>{if(!nodes.has(id))nodes.set(id,{hidden:false,innerHTML:'',textContent:'',value:'',style:{},classList:{add(){},remove(){}},focus(){},click(){}});return nodes.get(id);};
+ const document={getElementById:node,addEventListener:(name,fn)=>listeners[name]=fn,createElement:()=>({click(){}})};
+ class View{constructor(){this.angle=-.55;this.zoom=1;this.pan={};View.instance=this;}setState(s){this.state=s;}resize(){}mark(){}sync(){}events(){this.state.events=[];}cameraUpdate(){}}
+ const storage={getItem:k=>data.get(k)||null,setItem:(k,v)=>data.set(k,v)};
+ new Function('Atlas','document','window','localStorage','matchMedia','AtlasView','setTimeout','clearTimeout',source)(A,document,{scrollTo(){}},storage,()=>({matches:false}),View,()=>0,()=>{});
+ const click=(action,id)=>listeners.click({target:{closest:()=>({dataset:{do:action,id:id===undefined?undefined:String(id)},disabled:false})}});
+ return {nodes,node,click,view:()=>View.instance,saved:()=>JSON.parse(data.get('frontline-atlas-v3')||'null'),key:e=>listeners.keydown({target:{tagName:'BODY'},preventDefault(){},...e})};
+}
+
+test('boot opens main menu without starting a battle',()=>{let h=harness(A,source);assert(h.node('screen-content').innerHTML.includes('FRONTLINE'));assert(h.node('battle').hidden);assert.equal(h.view(),undefined);});
+test('campaign requires loadout then opens full-screen battlefield',()=>{let h=harness(A,source);h.click('campaign');assert(h.node('screen-content').innerHTML.includes('OP 01'));h.click('mission',0);assert(h.node('screen-content').innerHTML.includes('5/6 units'));h.click('deploy');assert(h.node('screen').hidden);assert(!h.node('battle').hidden);assert.equal(A.alive(h.view().state,0).length,5);assert.equal(h.saved().battle.credits,12);assert(h.node('unit-panel').hidden);});
+test('clicking a model opens actions and weapon fire mode',()=>{let h=harness(A,source);h.click('mission',0);h.click('deploy');let u=h.view().state.units.find(u=>u.type==='light'&&u.team===0);h.view().onClick(u);assert(!h.node('unit-panel').hidden);assert(h.node('unit-panel').innerHTML.includes('Main gun'));assert(h.node('unit-panel').innerHTML.includes('4/4 shots'));h.click('weapon',0);assert(h.node('toast').textContent.includes('amber'));h.click('deselect');assert(h.node('unit-panel').hidden);});
+test('deck changes survive reload and unlocked light remains selectable',()=>{let h=harness(A,source);h.click('mission',0);h.click('deck-toggle','jeep');assert.equal(h.saved().profile.deck.length,6);h.click('deploy');assert.equal(A.alive(h.view().state,0).length,6);let saved=JSON.stringify(h.saved()),h2=harness(A,source,{'frontline-atlas-v3':saved});assert(h2.node('screen-content').innerHTML.includes('Resume operation'));h2.click('resume');assert.equal(A.alive(h2.view().state,0).length,6);});
+test('armory, research and all custom biomes are menu sections',()=>{let h=harness(A,source);h.click('armory');assert(h.node('screen-content').innerHTML.includes('Citadel landship'));h.click('research');assert(h.node('screen-content').innerHTML.includes('Rank 0/3'));h.click('defense');assert(h.node('screen-content').innerHTML.includes('White Reach'));h.node('custom-biome').value='3';h.node('custom-seed').value='42';h.click('prepare-defense');h.click('deploy');assert.equal(h.view().state.mission.biome,'snow');assert.equal(h.view().state.mission.type,'hold');});
+test('old campaign progress migrates without altering v1 data',()=>{const old=JSON.stringify({profile:{completed:{0:{stars:2,turns:9}}}});let h=harness(A,source,{'frontline-atlas-v1':old});h.click('mission',1);h.click('deploy');assert.equal(h.saved().profile.completed[0].stars,2);assert.equal(h.saved().battle.mission.id,1);assert.equal(h.saved().profile.credits,11);});

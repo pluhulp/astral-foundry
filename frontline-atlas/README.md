@@ -1,45 +1,38 @@
 # Frontline Atlas
-
-An original browser-local, 3D turn-based combined-arms strategy game. Inspired by accessible grid-based tactics; not a Roblox port and contains no Roblox or Noobs in Combat assets, code, maps, or branding.
-
+Original, browser-local 3D turn-based tactics. The Astral Foundry root game is separate.
 Play: https://pluhulp.github.io/astral-foundry/frontline-atlas/
 
-## Included
-- 60 deterministic campaign operations across Greenline, Dust Frontier, Tidebreak, White Reach, Skyfall, and Iron Meridian. These use five objective templates with seeded terrain, escalating battlegroups, and theater briefings, not 60 hand-scripted story scenarios.
-- 32 unit roles across infantry, armor, air, and navy, with original procedural 3D models.
-- Movement costs, cover, counterfire, artillery minimum range and splash, AA/AT role bonuses, healing, repairs, transports, capture, facility income, and enemy reinforcements.
-- Five objectives: HQ capture, elimination, four-round relay defense, courier escort, and command-vehicle strike. Capturing enemy HQ is an alternate win condition.
-- Three campaign medals per operation, sequential unlocks, and four persistent research tracks with three levels each.
-- Custom seeded skirmishes with all units unlocked and 2,000 starting supply.
-- Difficulty, optional fog of war, audio/animation controls, save export/import, and autosave after completed actions/turns.
-- Rotatable/zoomable 3D view, WebGL when available, and a Canvas-based software 3D fallback. All dependencies are bundled locally.
+## Version 3
+- Main menu, 60-operation level select, custom skirmishes and relay defense.
+- Full-viewport battlefield with model selection, teal movement tiles, amber weapon-range tiles and a bottom unit action bar.
+- Choose 5–6 distinct variants before deployment, within 26 deployment points. No mid-battle recruitment. Escort missions add a separate courier.
+- 43 variants in branching platform trees. Unlocks require a parent, lifetime earnings threshold and a credit purchase; campaign completion does not unlock troops.
+- Earlier variants remain selectable. Training is purchased for each variant separately, up to three ranks, and applies to newly deployed units.
+- Light tank → medium → heavy → three-cannon superheavy or siege tank; light tank also branches into fast cruisers and artillery.
+- Independent cannon selection, ammunition magazines (3–6 shots), one reserve reload, and supply trucks.
+- Trucks repair adjacent infantry/vehicles and refill every magazine plus the reserve for 1 supply. Servicing never grants an extra weapon action.
+- Reload ends a unit's turn. With no reserve, a unit must reload on an owned facility for 1 supply, or get truck support.
+- Supply begins at 12, gains 1 per round and caps at 24. First campaign victories award 6 credits; repeat/custom victories 3; defeats 1.
+- Six biome palettes: grassland, desert, coast, snow, islands and urban. Original procedural models, reinforced vehicle details, landship turrets and supply cargo.
+- Local bundled Three.js, hardware WebGL and software projection fallback. Static terrain batching/caching retained.
 
 ## Controls
-Click a friendly unit, then a green tile to move or a highlighted enemy to attack. Moving leaves the action available; attacking ends movement. Capture facilities with infantry standing on their tile. Reinforcements become ready next round.
+Click a friendly model to see movement and weapon ranges. Click a teal tile to move. Select a weapon, then an enemy within amber range. Each weapon fires once per turn. Firing ends movement; a multi-weapon unit can still use its other weapons.
 
-- Drag: rotate. Shift-drag: pan. Wheel: zoom.
-- Q/E: rotate. +/-: zoom. R: reset camera.
-- Tab: next ready unit. C: capture. G: dig in. Space: end turn.
-- Escape: close a dialog.
+Drag to orbit, Shift-drag to pan, scroll to zoom. Q/E rotate, Tab cycles ready units, C captures, Space ends the turn, Escape deselects or pauses.
 
-Artillery cannot fire after moving and has minimum range two. Splash can hit allies. A transport embarking a squad ends its turn; on a later turn it may move then unload onto an adjacent valid tile. Ships need water; marines and amphibious carriers cross both land and water.
+Artillery cannot fire after moving and has minimum range two. Ships require water. Transports embark one adjacent squad and unload on a later turn. Capture enemy HQ or complete the mission-specific objective; losing your HQ or all friendly forces loses the battle.
 
-## Development
-Buildless static HTML/CSS/JS. Serve this directory using any static HTTP server. No package installation or backend is needed. Local file opening also works in browsers that permit local script loading.
+## Saves
+Version 3 uses `frontline-atlas-v3`. On first launch it migrates valid completed operations from `frontline-atlas-v1` and awards up to 60 migration credits. Old active battles and global upgrades are not reused. The old save key and the root game's saves remain untouched. Export/import v3 saves in Settings. Pending enemy turns resume when loading a battle. Rewards are claimed only once per battle.
 
-- `core.js`: renderer-independent simulation and campaign data.
-- `render.js`: original geometry, WebGL/software rendering, camera and effects.
-- `app.js`: interface, progression, settings, local saves.
-- `three.min.js`: Three.js r160; see THREE-LICENSE.txt.
+## Development and validation
+Buildless HTML/CSS/JavaScript; serve this directory with any static HTTP server.
+Run `node --test frontline-atlas/*.test.cjs` from the repository root.
 
-Run `node --test *.test.cjs` from this directory.
+- `core.js`: simulation, data, unlocks, ammo and loadout rules.
+- `render.js`: procedural geometry, WebGL/software view, tile markers and model picking.
+- `app.js`: main menu, progression, loadout, controls and saves.
+- Tests: deterministic setup and objective reachability for all 60 missions, combat/support/transport rules, economic limits, unlocks, per-variant training, ammo, multiweapon actions, AI invariants, geometry and rendering caches, plus mocked-DOM menu/loadout/save integration.
 
-## Validation and limits
-15 automated checks cover all mission setups and objective reachability, action rules, role restrictions, objectives, transports, recruitment, supply, upgrades, fog, repeated AI turns, and model geometry. Browser QA checked movement, turn cycling, recruitment, campaign locks, custom coastal skirmishes, naval recruitment, and saved state restoration using the software 3D renderer. Hardware WebGL was unavailable in the QA browser.
-
-This is a first playable release. The campaign is not exhaustively balance-tested. Single-player only; no multiplayer, naval stealth, fuel/ammunition simulation, destructible terrain, or full recreation of another game's systems. School device policies and performance vary.
-
-Save data stays in the browser under `frontline-atlas-v1`; it is separate from Astral Foundry saves. Export backups from Settings.
-
-## Clarity and performance update
-Terrain props are reduced, movement uses a boundary outline, and health bars appear for selected or damaged units. Repeated static terrain uses WebGL instancing. The software renderer caches projected static geometry; idle scenes stop redrawing and hidden tabs pause. Active rendering targets 60 fps on WebGL and 30 fps in compatibility mode, subject to device capability. Enemy turn pacing is shorter. Two additional checks verify cache invalidation and instancing transforms.
+Validation for this update ran the test bodies in a JavaScript runtime. A local shell and browser preview were unavailable: Node CLI, visual layout, real WebGL interaction and device performance were not directly tested. No external assets or network dependencies are needed at runtime.
