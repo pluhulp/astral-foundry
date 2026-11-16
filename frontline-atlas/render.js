@@ -1,14 +1,43 @@
 /* Original low-poly models, shared geometry, WebGL + software 3D fallback. */
 (function(){'use strict';
-const T=THREE,A=Atlas,colors={blue:0x478e8e,red:0xba6651,dark:0x293b39,tan:0xd8c4a1};
+const T=THREE,A=Atlas,colors={blue:0x4f92b3,red:0xc37b5a,dark:0x243440,tan:0xd8c4a1};
 const mats=new Map(),boxGeo=new T.BoxGeometry(1,1,1),cylGeo=new T.CylinderGeometry(1,1,1,7),coneGeo=new T.ConeGeometry(1,1,5),sphereGeo=new T.IcosahedronGeometry(1,0);
 function mat(c){if(!mats.has(c))mats.set(c,new T.MeshLambertMaterial({color:c}));return mats.get(c);}
 function mesh(g,geo,color,x,y,z,sx,sy,sz){let m=new T.Mesh(geo,mat(color));m.position.set(x,y,z);m.scale.set(sx,sy,sz);g.add(m);return m;}
 function box(g,c,x,y,z,w,h,d){return mesh(g,boxGeo,c,x,y,z,w,h,d);}
 function cylinder(g,c,x,y,z,r,h){return mesh(g,cylGeo,c,x,y,z,r,h,r);}
 function cone(g,c,x,y,z,r,h){return mesh(g,coneGeo,c,x,y,z,r,h,r);}
-function soldier(g,c,x,z,weapon){box(g,0x273c38,x-.06,.11,z,.085,.22,.10);box(g,0x273c38,x+.06,.11,z,.085,.22,.10);box(g,c,x,.29,z,.24,.22,.14);box(g,0xe1ba83,x,.47,z,.16,.16,.15);box(g,c,x,.57,z,.20,.07,.19);box(g,c,x-.15,.30,z,.07,.20,.09);box(g,c,x+.15,.30,z+.07,.07,.17,.09);box(g,0x283332,x+.14,.34,z+.18,.055,.055,weapon==='rocket'?.48:.29);if(weapon==='rocket')cylinder(g,0x788457,x+.13,.34,z+.18,.065,.12);}
-function model(type,team){let variant=type;let g=new T.Group(),d=A.D[type];type=({cruiser:'light',superheavy:'heavy',siege:'arty',autocannon:'jeep',ifv:'apc',missile:'mlrs',spg:'arty',flak:'aa',supply:'apc',logistics:'apc',assault:'mg',attackjet:'fighter'})[type]||type;let c=team===0?colors.blue:colors.red,light=team===0?0x8bb0a0:0xd39b79,dark=colors.dark;
+function soldier(g,c,x,z,weapon){
+for(const side of [-1,1]){box(g,0x283c4b,x+side*.065,.12,z+(side<0?.015:-.015),.085,.22,.10);box(g,0x1b2935,x+side*.065,.035,z+.035,.10,.07,.15);box(g,c,x+side*.07,.16,z+.055,.08,.075,.035);}
+box(g,c,x,.30,z,.235,.23,.16);box(g,0x344b56,x,.31,z+.095,.18,.16,.045);
+for(const side of [-1,1]){box(g,0x88967d,x+side*.05,.29,z+.125,.065,.065,.025);let arm=box(g,c,x+side*.15,.31,z+.025,.075,.18,.085);arm.rotation.x=-.3;box(g,0xc9a987,x+side*.15,.24,z+.065,.06,.065,.065);}
+box(g,0x536271,x,.31,z-.12,.17,.18,.10);
+box(g,x<0?0xc69c73:0x9c7559,x,.48,z,.145,.15,.14);
+let helmet=mesh(g,sphereGeo,c,x,.555,z-.005,.115,.09,.105);
+box(g,0x172a36,x,.50,z+.075,.13,.045,.023);box(g,0x83c9d5,x,.505,z+.09,.09,.022,.012);
+let gun=box(g,0x24323b,x+.13,.32,z+.20,weapon==='rocket'?.075:.045,.05,weapon==='rocket'?.43:weapon==='sniper'?.50:.29);
+box(g,0x687b80,x+.13,.34,z+.14,.025,.025,.055);
+if(weapon==='rocket'){box(g,0x84935e,x+.13,.32,z+.36,.10,.10,.13);}
+if(weapon==='flamer'){cylinder(g,0xe2a05c,x,.33,z-.15,.09,.22);box(g,0x293d46,x+.13,.32,z+.36,.07,.07,.19);}
+}
+function model(type,team){let variant=type;let g=new T.Group(),d=A.D[type];type=({cruiser:'light',superheavy:'heavy',siege:'arty',autocannon:'jeep',ifv:'apc',missile:'mlrs',spg:'arty',flak:'aa',supply:'apc',logistics:'apc',assault:'mg',attackjet:'fighter',bike:'jeep',sidecar:'jeep',rocketbike:'jeep',quad:'jeep',ambulance:'apc',hospital:'apc',recovery:'heavy',arsenal:'apc',supplyheli:'transport',medevac:'transport',scoutheli:'heli',twinheli:'heli',aa_cannon:'aa',quadflak:'aa',sam:'mlrs',radar:'jeep',command:'apc',smoke:'apc',grenadier:'rifle',flamer:'flamer',ranger:'scout',atgun:'arty',mortarcarrier:'apc',gunboat:'destroyer'})[type]||type;let c=team===0?colors.blue:colors.red,light=team===0?0x9ac9d4:0xe0af7c,dark=colors.dark;
+
+if(['bike','sidecar','rocketbike'].includes(variant)){
+for(const z of [-.28,.28]){let wheel=cylinder(g,dark,0,.15,z,.16,.095);wheel.rotation.z=Math.PI/2;let hub=cylinder(g,0x9aaeb4,-.055,.15,z,.07,.015);hub.rotation.z=Math.PI/2;}
+box(g,c,0,.27,0,.17,.12,.40);box(g,dark,0,.36,-.08,.15,.06,.22);let fork=box(g,0x95a5ad,0,.30,.23,.045,.34,.045);fork.rotation.x=-.3;box(g,dark,0,.46,.20,.29,.03,.04);box(g,0xf3dd9a,0,.35,.31,.11,.09,.025);
+let rider=new T.Group();soldier(rider,c,0,0,'rifle');rider.scale.setScalar(.7);rider.position.set(0,.22,-.07);g.add(rider);
+if(variant==='sidecar'){box(g,c,.25,.21,0,.27,.20,.43);let wheel=cylinder(g,dark,.40,.15,0,.14,.08);wheel.rotation.z=Math.PI/2;box(g,dark,.25,.40,.22,.04,.04,.38);}
+if(variant==='rocketbike'){box(g,0x53684f,-.15,.40,-.05,.12,.12,.48);box(g,0xead1a0,-.15,.40,.20,.08,.08,.05);}
+return g;
+}
+if(['aa_cannon','quadflak','atgun'].includes(variant)){
+box(g,c,0,.14,0,.32,.15,.42);
+for(let side of [-1,1]){let wheel=cylinder(g,dark,side*.29,.16,-.12,.17,.08);wheel.rotation.z=Math.PI/2;let leg=box(g,0x788e8d,side*.20,.05,-.40,.06,.07,.65);leg.rotation.y=side*.35;}
+cylinder(g,c,0,.29,0,.19,.14);box(g,c,0,.39,-.03,.48,.27,.055);
+const n=variant==='quadflak'?4:1;for(let i=0;i<n;i++){let gun=box(g,dark,n===1?0:(i%2?1:-1)*.09,.40+Math.floor(i/2)*.12,.29,.045,.045,variant==='atgun'?.88:.63);gun.rotation.x=-.18;}
+box(g,0x92c1c7,.18,.45,-.09,.055,.055,.10);return g;
+}
+
 if(d.branch==='Infantry'){soldier(g,c,-.19,-.13,type);soldier(g,c,.18,.13,type);if(['rifle','marine','commando','mg'].includes(type))soldier(g,c,.18,-.24,type);if(type==='medic'){box(g,0xf1eee0,-.20,.36,-.23,.19,.18,.07);box(g,0xc96350,-.20,.36,-.272,.04,.13,.018);box(g,0xc96350,-.20,.36,-.275,.12,.04,.018);}if(['mortar','mg'].includes(type)){box(g,dark,0,.1,.18,.35,.06,.36);let gun=box(g,dark,0,.24,.21,.09,.36,.09);gun.rotation.x=.5;}}
 if(d.branch==='Armor'){let tracked=!['jeep','mlrs','aa','apc'].includes(type);for(let side of [-1,1]){if(tracked)box(g,0x303b37,side*.28,.15,0,.17,.22,.77);else for(let z of [-.24,.24]){let w=cylinder(g,0x29342f,side*.29,.14,z,.13,.10);w.rotation.z=Math.PI/2;}}
 box(g,c,0,.25,0,.58,.25,.74);box(g,light,0,.39,-.08,.43,.08,.43);
@@ -41,6 +70,18 @@ if(d.branch==='Armor'){
  }
 }
 if(d.branch==='Infantry'){for(let x of [-.19,.18]){box(g,0x334942,x,.31,-.24,.15,.17,.08);box(g,0x9eb5a2,x,.39,-.10,.12,.04,.03);}}
+
+if(['supply','logistics','arsenal','quad','supplyheli'].includes(variant)){
+for(let i=0;i<(d.serviceSlots||1);i++){let x=d.serviceSlots>1?(i?1:-1)*.16:0;box(g,0xb59968,x,.57,-.16,.22,.22,.24);box(g,0xe0cc92,x,.69,-.16,.035,.02,.24);}
+}
+if(['ambulance','hospital','medevac'].includes(variant)){box(g,0xe1e9de,0,.57,-.08,.40,.20,.32);box(g,0x57a5a4,0,.68,-.08,.25,.025,.065);box(g,0x57a5a4,0,.68,-.08,.065,.025,.25);for(let side of [-1,1])box(g,0x7ce5df,side*.17,.70,-.20,.07,.04,.05);}
+if(variant==='recovery'){let boom=box(g,0xb8a66b,0,.72,-.15,.10,.10,.75);boom.rotation.x=-.55;box(g,dark,0,.52,.15,.025,.38,.025);box(g,0x9babb0,.04,.34,.15,.11,.035,.035);}
+if(['radar','command'].includes(variant)){box(g,0x9cb6ba,0,.76,-.1,.025,.7,.025);let dish=cylinder(g,0x9cc5c9,0,1.03,-.12,.25,.045);dish.rotation.x=Math.PI/3;box(g,c,0,.57,-.12,.42,.15,.4);}
+if(variant==='smoke'){for(let side of [-1,1])for(let z of [-.14,0,.14]){let tube=cylinder(g,0xa3aaa1,side*.25,.58,z,.045,.22);tube.rotation.z=side*.5;}}
+if(['twinheli','sam','rocketbike'].includes(variant)){for(let side of [-1,1]){box(g,c,side*.30,.1,.05,.19,.14,.39);for(let z of [-.08,.08])cylinder(g,0xe1c38f,side*.30,.18,z,.045,.045);}}
+if(variant==='mortarcarrier'){for(let side of [-1,1]){let tube=box(g,dark,side*.12,.62,.12,.065,.45,.065);tube.rotation.x=.35;}}
+if(variant==='gunboat'){box(g,c,0,.30,-.35,.20,.15,.18);box(g,dark,0,.33,-.52,.045,.045,.32);}
+
 g.userData.variant=variant;return g;}
 class View{
 constructor(canvas,labels){this.canvas=canvas;this.labels=labels;this.scene=new T.Scene();this.scene.background=new T.Color(0x172b35);this.scene.add(new T.HemisphereLight(0xffffff,0x687964,2));let sun=new T.DirectionalLight(0xffefd2,2.5);sun.position.set(-8,16,10);this.scene.add(sun);this.camera=new T.OrthographicCamera(-9,9,7,-7,.1,100);this.angle=-.55;this.tilt=.85;this.zoom=1;this.pan={x:0,y:0};this.groups=new Map();this.labelsMap=new Map();this.ray=new T.Raycaster();this.pointer=new T.Vector2();this.animations=[];this.effects=[];this.last=0;this.motion=true;this.dirty=true;this.staticFaces=null;this.metrics={frames:0,renderMs:0,staticBuilds:0};this.selectedId=null;
@@ -50,9 +91,9 @@ bind(){let down=null,drag=false;this.canvas.addEventListener('pointerdown',e=>{d
 resize(){let r=this.canvas.parentElement.getBoundingClientRect();this.w=r.width;this.h=r.height;if(this.renderer)this.renderer.setSize(this.w,this.h,false);else{this.canvas.width=this.w;this.canvas.height=this.h;}this.cameraUpdate();}
 cameraUpdate(){let size=9/this.zoom,ratio=this.w/this.h;this.camera.left=-size*ratio;this.camera.right=size*ratio;this.camera.top=size;this.camera.bottom=-size;this.camera.position.set(Math.sin(this.angle)*22,Math.sin(this.tilt)*25,Math.cos(this.angle)*22);this.camera.lookAt(-this.pan.x,0,this.pan.y);this.camera.updateProjectionMatrix();this.camera.updateMatrixWorld();this.staticFaces=null;this.dirty=true;}
 clear(group){while(group.children.length)group.remove(group.children[0]);}
-setState(s){this.staticFaces=null;this.dirty=true;this.animations=[];this.effects.forEach(e=>{e.el?.remove();this.scene.remove(e.fx);});this.effects=[];this.state=s;this.clear(this.tileGroup);this.clear(this.unitGroup);this.groups.clear();this.labels.innerHTML='';this.labelsMap.clear();let biome=s.mission.biome;this.scene.background.set(({grass:0x172f30,desert:0x38312c,snow:0x243647,urban:0x252c38,coast:0x163440,islands:0x12383d})[biome]);let palette=biome==='desert'?[0xbca678,0xc7b486,0xd4c296]:biome==='snow'?[0xd7dfd7,0xcad6d0,0xe5e9dd]:biome==='urban'?[0x657581,0x73818c,0x87949b]:biome==='coast'?[0xbcae7d,0xcbbb8c,0xad9f72]:biome==='islands'?[0x4b8c70,0x619878,0x74aa87]:[0x628b68,0x729a73,0x80a57e];
+setState(s){this.staticFaces=null;this.dirty=true;this.animations=[];this.effects.forEach(e=>{e.el?.remove();this.scene.remove(e.fx);});this.effects=[];this.state=s;this.clear(this.tileGroup);this.clear(this.unitGroup);this.groups.clear();this.labels.innerHTML='';this.labelsMap.clear();let biome=s.mission.biome;this.scene.background.set(({grass:0x172f30,desert:0x38312c,snow:0x243647,urban:0x252c38,coast:0x163440,islands:0x12383d})[biome]);let palette=biome==='desert'?[0xbca678,0xc7b486,0xd4c296]:biome==='snow'?[0xd7dfd7,0xcad6d0,0xe5e9dd]:biome==='urban'?[0x657581,0x73818c,0x87949b]:biome==='coast'?[0xbcae7d,0xcbbb8c,0xad9f72]:biome==='islands'?[0x4b8c70,0x619878,0x74aa87]:[0x60866c,0x6d9379,0x80a28a];
 
-s.tiles.forEach(t=>{let x=t.x-s.w/2+.5,z=t.y-s.h/2+.5,c=t.terrain==='water'?0x759fa6:t.terrain==='road'||t.terrain==='bridge'?0xb8b99c:palette[(t.x+t.y)%2];let tile=box(this.tileGroup,c,x,-.28,z,.985,.58,.985);tile.userData.tile=t;
+s.tiles.forEach(t=>{let x=t.x-s.w/2+.5,z=t.y-s.h/2+.5,c=t.terrain==='water'?0x387f99:t.terrain==='road'||t.terrain==='bridge'?0x8c9489:palette[(t.x+t.y)%2];let tile=box(this.tileGroup,c,x,-.28,z,.985,.58,.985);tile.userData.tile=t;
 if(t.terrain==='water'&&(t.x+t.y)%3===0){for(let i=0;i<1;i++)box(this.tileGroup,0x97b7b7,x-.24+i*.37,.018,z+.13-i*.3,.22,.012,.014);}
 if(t.terrain==='bridge'){box(this.tileGroup,0x686d5c,x,.11,z-.43,1,.15,.05);box(this.tileGroup,0x686d5c,x,.11,z+.43,1,.15,.05);}
 if(t.terrain==='road'&&!t.facility)box(this.tileGroup,0xe0d9b5,x,.018,z,.25,.012,.035);
