@@ -1,22 +1,32 @@
-# Frontline Atlas
+# Frontline Atlas — v7
 
-Standalone turn-based tactics game. Open `index.html` through a static HTTP server. All assets are local; no build or network dependencies. The repository-root space game is separate.
+Standalone turn-based tactics game inside `frontline-atlas/`. The repository-root space game is independent and unchanged. Serve this directory over HTTP; no build step or external assets are required.
 
-## Version 6 — miniature warfare
+## Tactical overhaul
 
-- 60 independently unlockable troop families, each with six playable configurations (360 total). Searchable family gallery, branch filters, compact configuration cards, parent requirements and equipment disclosures.
-- Tanks keep light, cruiser, medium, heavy, landship and command choices in one family. Earlier configurations remain available. Credits and lifetime earnings gate purchases, never campaign troop unlocks.
-- Role-based configurations trade mobility, armor, firepower, observation and support capacity. Dual logistics stations have separate actions. All configurations have tactical abilities with costs and cooldowns.
-- Rebuilt procedural miniature models for infantry, bikes, tracked/wheeled vehicles, helicopters, aircraft, drones and naval units. Equipment, hull proportions and variant details change their silhouettes. Armory and menu thumbnails render the same geometry as the battlefield.
-- New slate/ochre interface, full-screen diorama battlefield, biome palettes, trees, rubble, bridges, road markings, HQ bunkers, factories, helipads and relay towers. WebGL lighting/shadows with a cached canvas fallback for machines without WebGL.
-- Existing 67 unit IDs, weapon arrays, health/movement/service definitions and v3 saves remain compatible. Existing campaign, deck, HQ deployment and infinite HQ resupply rules remain intact.
+- Pick 1–6 unlocked troop types, including infantry. There is no combined deck point cap. The roster remains 60 families × six configurations.
+- New battles begin with **10 supply and no free deck units**. Select a troop in HQ, then click one of four rear land pads. Coastal theaters include two naval pads. Begin operation when your starting force is placed. During combat arrivals wait until the next round; occupied pads block spawning. Ten active combat units maximum.
+- Income is 4 supply per round, plus 1 per owned factory (maximum +2), with a 14-supply bank cap. A base Goliath costs 8; a carrier or Citadel costs 10. Repairs and purchases share the supply pool.
+- Maps are 24–28 by 18–24 tiles, with seeded irregular boundaries, cutouts, water, mountain obstacles, concealment, roads, and reachable facilities. All 60 map layouts differ.
+- Mission victories are independent: capture HQ, eliminate, hold relay, escort courier, destroy command, seize marked facilities, or protect a relief convoy for ten rounds. HQ capture cannot bypass other objectives. Towns heal occupants, factories provide income, relays provide local vision, and airfields service landed aircraft.
+- Fog is mandatory. Regular troops see four tiles, recon six, radar seven; active scans reach eight. Forest and ruin concealment reduces ordinary detection to two tiles. Mountains block vision and direct fire. AI targeting uses the same visibility rules.
+- AI scores attacks for damage/kills/support targets, seeks cover and standoff distance, routes around obstacles, captures objectives, uses support/scan/attack abilities, retreats for repairs, and purchases reinforcements from a bounded budget.
+- Global movement, range, armor, hull and firepower are reduced. Movement boosts add one tile. Armor and naval units suffering a substantial hit below 45% hull can lose mobility. Supply service or HQ restores running gear.
+- Aircraft must land on suitable terrain for ground resupply. Landing/takeoff spend the turn. Grounded aircraft cannot move, fire or use tactical abilities; they take extra damage. Owned airfields repair/rearm them automatically.
+- Unit panels explain roles and show prominent ammunition, immobilization and landing warnings.
 
-## Files
+## New model construction
 
-`core.js` handles game rules; `roster.js` builds family configuration data; `models.js` creates shared miniature geometry; `render.js` handles terrain, camera, models, effects and thumbnails; `app.js` handles menus, saves and controls; `style.css` handles presentation. Bundled Three.js retains its upstream license.
+`models.js` uses extruded hull outlines, lathed fittings, articulated figures, and platform-specific chassis/equipment assemblies. Bodies are not normalized to tile dimensions: narrow bikes, long logistics trucks, low tank destroyers, broad siege platforms, distinct aircraft and elongated ships use different footprints. Six configurations per family add recognizable equipment modules. Preview thumbnails and battlefield use the same geometry. Shared geometry/material caches reduce allocations. Part surfaces use physical separation rather than coplanar overlays.
 
-## Checks
+`core.js` owns rules and map generation; `roster.js` builds families; `render.js` handles camera, terrain, fog, models and effects; `app.js` owns menus and saves.
 
-Run `node --test *.test.cjs` from this folder. Tests cover missions, movement, combat, ammunition, independent weapons and service bays, recruitment, tactical abilities, save/menu flow, family progression, all 720 faction/configuration models, and terrain batching/caching.
+## Progress compatibility
 
-Browser QA covers the menu, searchable gallery, six-configuration detail, saved-battle resume, HQ and battlefield fallback. The QA browser disables WebGL, so GPU shadows require validation on a WebGL-capable device.
+The storage key remains `frontline-atlas-v3`. Existing credits, unlocked troops, training and completed missions are preserved. Pre-v7 active battles cannot use the new map/deployment rules: their data is archived as `profile.retiredBattle` and included in exported saves; start a new operation. New battles use version 3. Import accepts old version-2 battles by archiving them, too.
+
+## Verification
+
+Run `node --test *.test.cjs`. Checks cover 60-map determinism and objective connectivity, paid placement, arrival limits, deck changes, income, fog/LOS, damage/repair, flight, objectives, tactical abilities, AI turns, progression and saves. Geometry checks cover all 720 faction/configuration models and six distinct equipment signatures per family. Eight simulated AI rounds run across every mission.
+
+Browser QA verified paid tank/infantry placement, no free starting force, start-operation flow, hidden enemies, round transition and +4 income. This QA browser disables WebGL, so canvas rendering is checked visually; GPU lighting/shadows still need a WebGL-capable device.
