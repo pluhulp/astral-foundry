@@ -2,7 +2,9 @@
 Original, browser-local 3D turn-based tactics. The Astral Foundry root game is separate.
 Play: https://pluhulp.github.io/astral-foundry/frontline-atlas/
 
-## Version 4
+## Version 5
+- Every one of the 67 variants now has a named tactical ability, shown in the loadout, armory and bottom action bar. Twelve mechanics cover temporary movement, recon sweeps, aimed shots, follow-up shots, triage, ammo drops, overtime service, rally orders, smoke screens, rapid insertion, mobile artillery setup and suppression. Supply costs and 2–3-round cooldowns limit these actions.
+- Reinforcements cannot use abilities on their arrival turn. Follow-up shots consume normal ammunition; overtime service cannot refresh weapon actions. Cooldowns persist in saves.
 - Main menu, 60-operation level select, custom skirmishes and relay defense.
 - Full-viewport battlefield with model selection, teal movement tiles, amber weapon-range tiles and a bottom unit action bar.
 - Choose 5–6 distinct variants before deployment, within 26 deployment points. Click your HQ to recruit from the chosen deck: 1 per round, 2 per variant, 8 active non-courier units maximum. New arrivals act next round. Escort missions add a separate courier.
@@ -43,4 +45,4 @@ Run `node --test frontline-atlas/*.test.cjs` from the repository root.
 - `app.js`: main menu, progression, loadout, controls and saves.
 - Tests: deterministic setup and objective reachability for all 60 missions, combat/support/transport rules, HQ deployment/free resupply, dual service slots, specialty support, economic limits, unlocks, per-variant training, ammo, multiweapon actions, AI invariants, geometry and rendering caches, plus mocked-DOM menu/loadout/save integration.
 
-Validation for this update ran the test bodies in a JavaScript runtime. A local shell and browser preview were unavailable: Node CLI, visual layout, real WebGL interaction and device performance were not directly tested. No external assets or network dependencies are needed at runtime.
+Validation: 49 tests pass under the Node test runner. Browser QA verified menu/loadout flow, battlefield rendering, HQ deployment costs and per-round lock, free resupply, troop selection, movement boost and its visible cooldown. All device sizes and the full campaign have not been manually playtested. No external assets or network dependencies are needed at runtime.

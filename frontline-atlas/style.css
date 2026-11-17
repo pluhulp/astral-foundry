@@ -9,3 +9,5 @@
 :root{--bg:#101d2b;--panel:#1b3041;--line:#3b5367;--mint:#8dd6d0;--gold:#f0c284}
 .base-content{width:100%}.base-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}.base-columns{display:grid;grid-template-columns:1.15fr 1fr;gap:24px}.base-columns section>small{margin-bottom:10px}.base-allies{display:grid;gap:6px}.base-allies>div{display:flex;gap:6px;align-items:center}.base-allies span{flex:1;font-size:12px}.base-allies button{padding:6px 10px;font-size:12px}.base-content .stats{font-size:11px;margin-top:10px}.base-content .actions button{min-width:125px}.unit-panel:has(.base-content){max-height:55dvh;overflow:auto}
 @media(max-width:760px){.base-columns{grid-template-columns:1fr;gap:15px}.battle-hud{gap:4px}.battle-hud button{font-size:11px;padding:8px}.hud-stats{max-width:85px}.unit-panel:has(.base-content){max-height:58dvh}.base-allies span{font-size:11px}}
+
+.ability-desc{font-size:12px;line-height:1.5;color:#aabfc5}.ability-desc b{color:#f0c284}.actions .tactical{border-color:#bd9d67;background:#35424b}.unit-panel{max-height:45dvh;overflow:auto}
