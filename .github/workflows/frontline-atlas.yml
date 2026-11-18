@@ -1,0 +1,19 @@
+name: Frontline Atlas regression tests
+on:
+  push:
+    branches: [frontline-v9-tactical-overhaul]
+  pull_request:
+    paths:
+      - 'frontline-atlas/**'
+      - '.github/workflows/frontline-atlas.yml'
+jobs:
+  tactics:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run combat, model and UI tests
+        working-directory: frontline-atlas
+        run: node --test *.test.cjs
