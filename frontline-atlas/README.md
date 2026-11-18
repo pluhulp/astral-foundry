@@ -1,6 +1,15 @@
-# Frontline Atlas — v7
+# Frontline Atlas — v8
 
 Standalone turn-based tactics game inside `frontline-atlas/`. The repository-root space game is independent and unchanged. Serve this directory over HTTP; no build step or external assets are required.
+
+## v8 command and combat polish
+
+- Click a hostile unit to preview exact damage, surviving HP, return fire and visible friendly blast victims. Confirm the shot or cancel without spending ammo.
+- Select a placed starting troop to return it to reserve for a full refund before beginning the operation. Refunds cannot be repeated or used during combat.
+- Collapsible force roster lists friendly troop health/readiness and centers the camera on selection. The collapsible field log shows the latest twelve events.
+- AI reacquires targets after moving, sends medics and logistics toward patients, and can service allies after approaching them. Difficulty now applies consistently to starting enemies and reinforcements.
+- Helicopters board infantry while landed; fast-rope abilities support airborne insertion. Deployment blocks transport/smoke actions. Failed save imports no longer replace the current profile.
+- Existing v7 battles remain compatible. The root space game is untouched.
 
 ## Tactical overhaul
 
@@ -27,6 +36,8 @@ The storage key remains `frontline-atlas-v3`. Existing credits, unlocked troops,
 
 ## Verification
 
-Run `node --test *.test.cjs`. Checks cover 60-map determinism and objective connectivity, paid placement, arrival limits, deck changes, income, fog/LOS, damage/repair, flight, objectives, tactical abilities, AI turns, progression and saves. Geometry checks cover all 720 faction/configuration models and six distinct equipment signatures per family. Eight simulated AI rounds run across every mission.
+Run `node --test *.test.cjs` (65 checks). Checks cover 60-map determinism and objective connectivity, paid placement, arrival limits, deck changes, income, fog/LOS, damage/repair, flight, objectives, tactical abilities, AI turns, progression and saves. Geometry checks cover all 720 faction/configuration models and six distinct equipment signatures per family. Eight simulated AI rounds run across every mission.
 
 Browser QA verified paid tank/infantry placement, no free starting force, start-operation flow, hidden enemies, round transition and +4 income. This QA browser disables WebGL, so canvas rendering is checked visually; GPU lighting/shadows still need a WebGL-capable device.
+
+V8 browser QA verified the force list, camera focus, deployment spend and full refund. Combat forecasts, confirmation/cancellation, AI reacquisition, medic routing, air transport and reinforcement difficulty are covered by automated regression checks.
