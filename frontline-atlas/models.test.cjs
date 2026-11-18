@@ -18,3 +18,36 @@ test('terrain rendering builds a solid outer floor, faceted rock meshes and alig
  assert(crags.length>0,'mountain and hill tiles should contain faceted ridge geometry');
  assert(v.tileGroup.children.some(o=>o.isMesh&&o.position.y===.019),'road center markings should be rendered');
 });
+
+test('toy attic uses one seamless felt-colored ground at exactly the game-board elevation',()=>{
+ const s=A.make(A.missions.find(m=>m.biome==='toy')),v=Object.create(context.window.AtlasView.prototype);
+ Object.assign(v,{scene:new T.Scene(),tileGroup:new T.Group(),unitGroup:new T.Group(),markGroup:new T.Group(),fogGroup:new T.Group(),backdrop:new T.Group(),effects:[],animations:[],groups:new Map(),labelsMap:new Map(),labels:{innerHTML:''},renderer:null,motion:false,cameraUpdate(){},sync(){}});
+ v.scene.background=new T.Color(0x8ba9b4);v.setState(s);
+ const ground=v.backdrop.children.find(o=>o.isMesh&&o.scale.x>=100&&o.scale.z>=100);
+ assert(ground,'a continuous floor must extend around the board');
+ assert.equal(ground.material.color.getHex(),v.groundColor);
+ assert(Math.abs((ground.position.y+ground.scale.y/2)-(-.005))<1e-6,'outer floor should meet the tile tops without a cliff');
+ const t=s.tiles.find(t=>t.terrain==='plain'&&!t.facility&&!t.path&&!t.pad);
+ assert(t,'a plain tile must exist');
+ const x=t.x-s.w/2+.5,z=t.y-s.h/2+.5;
+ const tile=v.tileGroup.children.find(o=>o.isMesh&&o.position.x===x&&o.position.y===-.25&&o.position.z===z);
+ assert(tile,'plain tile should be rendered');
+ assert.equal(tile.material.color.getHex(),ground.material.color.getHex(),'toy floor and tile must be the same tone');
+ assert.equal(v.fogHiddenMat.transparent,true,'unexplored tiles should tint rather than replace the floor color');
+ assert(v.fogHiddenMat.opacity<.45,'fog should not form opaque checkerboard patches');
+});
+test('toy decor is sparse, rotated, varied and coordinated instead of repeated on every ruins tile',()=>{
+ const s=A.make(A.missions.find(m=>m.biome==='toy')),v=Object.create(context.window.AtlasView.prototype);
+ Object.assign(v,{scene:new T.Scene(),tileGroup:new T.Group(),unitGroup:new T.Group(),markGroup:new T.Group(),fogGroup:new T.Group(),backdrop:new T.Group(),effects:[],animations:[],groups:new Map(),labelsMap:new Map(),labels:{innerHTML:''},renderer:null,motion:false,cameraUpdate(){},sync(){}});
+ v.scene.background=new T.Color(0x8ba9b4);v.setState(s);
+ const props=v.tileGroup.children.filter(o=>o.userData.toyProp!==undefined);
+ const ruins=s.tiles.filter(t=>t.terrain==='ruins');
+ assert(props.length>1,'at least two props should be placed');
+ assert(props.length<ruins.length/5,'props should appear in fewer than one fifth of ruins cells');
+ assert(new Set(props.map(o=>o.userData.toyProp)).size>=2,'props should not all share one silhouette');
+ assert(new Set(props.map(o=>o.rotation.y)).size>=2,'props should not face the same way');
+ const rooms=v.backdrop.children.filter(o=>o.userData.roomPart);
+ assert(rooms.some(o=>o.userData.roomPart==='back-wall'));
+ assert(rooms.some(o=>o.userData.roomPart==='side-wall'));
+ assert(rooms.some(o=>o.userData.roomPart==='window-frame'));
+});
