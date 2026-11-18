@@ -1,3 +1,17 @@
+# Frontline Atlas v9.2 — Cohesive World & Toy Attic
+
+- Toy biome is a continuous deep-green felt playfield. The surrounding ground meets tile-top elevation and uses the exact same material color, so previously void spaces no longer reveal a brown gap or cliff.
+- Fog of war uses translucent tints rather than a competing opaque teal checkerboard; unseen enemies still remain hidden.
+- Toy debris is placed sparsely, with a maximum of one object per 4×4 region when the chosen tile contains ruins. Five distinct but size- and palette-matched toy prop designs include wooden blocks, a little car, spool/die, tiny fort, and domino. Deterministic seed-based rotations make repeated models less conspicuous.
+- Toy-themed mountain areas use subtle cardboard ridges instead of a full mountain on every blocked tile.
+- Instead of a circular ring of generic cubes, the attic background now has constructed rear/side walls, structural roof beams, a window, bookshelf with books, stacked packing boxes, toy chest, small railway, and one larger block sculpture. Background geometry remains outside the playable grid.
+- All other environments now have an outer ground plane matching their main map terrain color and elevation.
+
+## Verification
+`node --test *.test.cjs` runs the core, UI, progression, and 3D geometry tests including checks for matching floor/tile materials, soft fog, sparse distinct toy props and attic scenery.
+
+---
+
 # Frontline Atlas — v9.1: Operator & Terrain
 
 ## What's improved
