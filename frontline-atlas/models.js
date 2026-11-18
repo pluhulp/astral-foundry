@@ -45,7 +45,7 @@ if(d.branch==='Infantry'){
  }else{
  if(chassis==='t'){for(let side of [-1,1]){let track=hullAt(g,0x263039,side*w*.46,.035,0,w*.22,l*.97,.15,2);for(let i=0;i<axles;i++)wheel(g,side*w*.53,(i/(axles-1)-.5)*l*.68,.067);for(let z=-l*.4;z<l*.42;z+=.09)rod(g,0x5a6667,[side*w*.38,.205,z],[side*w*.57,.205,z],.012);}}
  else for(let i=0;i<axles;i++)for(let side of [-1,1])wheel(g,side*w*.5,(axles===1?0:i/(axles-1)-.5)*l*.67,.085);
- if(chassis==='tow'){rod(g,0x697e70,[-w*.5,.06,-.4],[0,.16,0],.025);rod(g,0x697e70,[w*.5,.06,-.4],[0,.16,0],.025);}else hull(g,c,w*.86,l,.17,fit==='open'?.08:.13,fit==='boat'?1:0);
+ if(chassis==='tow'){rod(g,0x697e70,[-w*.5,.06,-.4],[0,.16,0],.025);rod(g,0x697e70,[w*.5,.06,-.4],[0,.16,0],.025);hullAt(g,0x33464d,0,.12,0,w*.73,l*.63,.13);hullAt(g,c,0,.205,-l*.11,w*.57,l*.42,.075);for(let side of [-1,1])box(g,0x8d998e,side*w*.35,.08,-l*.14,.08,.12,.21);}else hull(g,c,w*.86,l,.17,fit==='open'?.08:.13,fit==='boat'?1:0);
  const utility=['cargo','medical','hospital','crane','dish','smoke','rocket','sam'].includes(fit);
  if(utility){hullAt(g,c,0,.29,l*.26,w*.8,l*.23,.19);hullAt(g,0x192f3b,0,.38,l*.33,w*.65,.025,.065);}
  if(['cargo','medical','hospital'].includes(fit)){if(fit==='cargo'){for(let i=0;i<(f==='arsenal'?3:2);i++)pack(g,0xa4a48a,0,.3,-l*.12-i*.18,w*.72,.15);if(d.serviceSlots>1)for(let x of [-w*.42,w*.42])rod(g,0xd7bb76,[x,.3,-.2],[x,.46,-.2],.024);}else{hullAt(g,0xc7cabb,0,.28,-l*.18,w*.85,l*.5,.25);rod(g,0x537e72,[-.07,.55,-.2],[.07,.55,-.2],.018);rod(g,0x537e72,[0,.55,-.27],[0,.55,-.13],.018);if(fit==='hospital')hullAt(g,0x959c86,w*.63,.02,-.14,w*.5,l*.6,.15);}}
