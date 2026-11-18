@@ -8,3 +8,51 @@
 .fire-preview{flex-basis:100%;display:flex;align-items:center;gap:12px;border-top:1px solid #bf7655;padding:12px;background:#263136}.fire-preview div{display:grid;gap:4px;flex:1}.fire-preview b{color:#ffbd8a}.fire-preview small,.fire-preview span{font-size:12px}.unit-panel:has(.fire-preview){flex-wrap:wrap}.battle-journal{position:absolute;right:18px;top:154px;z-index:12;background:#15262eeb;color:#d2e0d9;border:1px solid #536b68;border-radius:7px;max-width:320px;font-size:12px;box-shadow:0 8px 24px #0003}.battle-journal summary{padding:10px 14px;cursor:pointer}.battle-journal ol{padding:0 14px 8px 30px;max-height:250px;overflow:auto}.battle-journal li{margin:8px 0}.battle-journal li small{color:#e8bc79}.battle-journal:not([open]){opacity:.8}@media(max-width:700px){.battle-journal{top:128px;right:8px;max-width:220px}.fire-preview{gap:6px;flex-wrap:wrap}.fire-preview div{min-width:100%}}
 
 .battle-force{position:fixed;left:20px;top:152px;z-index:11;max-width:225px;background:#15262eeb;border:1px solid #536b68;border-radius:7px;font-size:12px}.battle-force summary{cursor:pointer;padding:10px 14px}.battle-force>div{display:grid;max-height:35dvh;overflow:auto;padding:5px;gap:4px}.battle-force button{text-align:left;padding:7px 10px}.battle-force small{font-size:9px;letter-spacing:.03em}@media(max-width:700px){.battle-force{top:166px;left:8px;max-width:190px}.battle-journal{top:166px}}
+
+
+/* V9 — clean edge-mounted command dock and connected research map */
+.unit-panel{left:auto;right:18px;top:50%;bottom:auto;transform:translateY(-50%);width:min(330px,calc(100vw - 36px));max-height:72dvh;display:block;padding:18px;border-radius:13px;border:1px solid #a4c1b255;box-shadow:0 18px 65px #08171b99;transition:opacity .22s,transform .25s;overflow:auto}
+.unit-panel .unit-info{max-width:100%;margin-bottom:13px;padding-bottom:12px;border-bottom:1px solid #9baaa533}
+.unit-panel .unit-info h3{font-size:19px;margin:4px 0 10px}
+.unit-panel .status-chips{display:flex;gap:7px;flex-wrap:wrap}
+.unit-panel .status-chips span{font:10px monospace;background:#2c403f;border:1px solid #5c7a71;padding:6px 8px;border-radius:5px;color:#d6e5da}
+.unit-panel .actions{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.unit-panel .actions button{padding:10px 7px;min-width:0;font-size:11px;text-align:center;border-radius:7px}
+.unit-panel .actions .weapon{grid-column:span 2;display:flex;justify-content:space-between;align-items:center;text-align:left}
+.unit-panel .actions .tactical{grid-column:span 2;background:#423f32}
+.unit-panel .close-unit{position:absolute;right:12px;top:12px;border:0;background:transparent;font-size:19px}
+.unit-panel .base-content{width:100%}
+.unit-panel .base-columns{display:block}
+.unit-panel .base-columns section{margin-top:15px}
+.unit-panel .base-columns section>small{margin-bottom:8px}
+.unit-panel .base-columns .actions{display:grid;grid-template-columns:1fr 1fr}
+.unit-panel .base-columns .actions button{display:flex;flex-direction:column;gap:3px;align-items:start}
+.unit-panel .base-allies{max-height:140px;overflow:auto}
+.unit-panel .base-allies>div{display:flex;flex-wrap:wrap}
+.unit-panel:has(.base-content){width:min(410px,calc(100vw - 36px));max-height:77dvh}
+.unit-panel:has(.fire-preview){display:block}
+.unit-panel .fire-preview{display:grid;margin-top:15px;border-radius:8px}
+.unit-panel .fire-preview button{width:100%}
+.unit-panel .fire-preview div{display:grid}
+.battle-hint{left:24px;transform:none;bottom:22px;border-radius:7px;padding:9px 13px;background:#15272cc7}
+.battle-force,.battle-journal{border-radius:9px;backdrop-filter:blur(12px)}
+.objective{border-radius:6px;max-width:380px;top:94px}
+.camera-controls{right:20px;top:auto;bottom:20px}
+.camera-controls button{border-radius:7px}
+.tech-tree{display:flex;align-items:stretch;justify-content:space-between;gap:clamp(18px,3vw,52px);max-width:1400px;margin:22px auto;overflow:auto;padding:12px 8px 28px;min-height:440px}
+.tech-column{display:flex;flex-direction:column;justify-content:space-around;gap:24px;min-width:190px;flex:1;position:relative}
+.tech-column:not(:first-child):before{content:'';position:absolute;top:50%;left:-26px;width:26px;border-top:2px solid #b6b48d;opacity:.7}
+.tech-column:after{content:'';position:absolute;right:-26px;top:28%;bottom:28%;border-right:2px solid #b6b48d80}
+.tech-column:last-child:after{display:none}
+.tech-node{position:relative;display:flex;flex-direction:column;padding:13px;background:#223337;border:1px solid #4a6661;border-radius:10px;min-height:200px;box-shadow:0 8px 24px #0002}
+.tech-node.researched{border-color:#8bc4a7;background:#263e3b}
+.tech-node.available{border-color:#ddb075;background:#3b3b32}
+.tech-node.locked{opacity:.62}
+.tech-heading{display:flex;justify-content:space-between;gap:8px;font:11px monospace;color:var(--gold)}
+.tech-heading small{color:inherit;font-size:9px}
+.tech-node .model-stage{aspect-ratio:1.8;max-height:125px}
+.tech-node>b{font-size:13px;min-height:34px}
+.tech-data{font:10px monospace;color:#adc1b8;margin:7px 0}
+.tech-node button{font-size:10px;padding:8px 5px;margin-top:auto}
+.tech-prereq{font-size:13px!important;margin-top:10px!important;color:#dfbb7f}
+@media(max-width:760px){.unit-panel{right:8px;top:auto;bottom:10px;transform:none;width:min(320px,calc(100vw - 16px));max-height:56dvh;padding:12px}.unit-panel .actions{display:grid;grid-template-columns:1fr 1fr;flex-basis:auto}.unit-panel .actions button{min-width:0}.battle-hint{bottom:9px;left:9px;max-width:calc(100vw - 18px)}.camera-controls{bottom:auto;top:132px;right:9px}.tech-tree{min-height:360px}.tech-column{min-width:160px}.tech-node{min-height:185px}.objective{max-width:55%;top:89px;font-size:10px}}
