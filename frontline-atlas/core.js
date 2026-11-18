@@ -393,9 +393,10 @@ function navyAbility(d){
  screen:{name:'Chaff and decoy umbrella',desc:'Apply defensive smoke to your vessel and allied ships within 2 tiles for the enemy turn.',cost:1,cooldown:3},
  torpedo:{name:'Coordinated torpedo run',desc:'Arm your next torpedo to inflict heavy bonus damage to a ship target. No effect on land targets.',cost:1,cooldown:3},
  sortie:{name:'Airwing resupply sortie',desc:'Replenish aircraft ammunition and repair up to 24 HP on nearby allied aircraft, even while airborne.',cost:2,cooldown:3},
+ unload:{name:'Landing ramp assault',desc:'Unload embarked infantry onto the adjacent shore ready to move and attack.',cost:0,cooldown:3},
  beachhead:{name:'Protected landing corridor',desc:'Fast-disembark embarked infantry: they can act immediately and gain defensive cover for the enemy response.',cost:1,cooldown:3}
  };
- return {kind,...templates[kind]};
+ return {kind,...templates[kind],name:d.family+' / '+d.variantName+' · '+templates[kind].name};
 }
 for(const d of Object.values(D)){
  if(d.branch!=='Navy')continue;
