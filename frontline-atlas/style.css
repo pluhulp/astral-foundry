@@ -56,3 +56,14 @@
 .tech-node button{font-size:10px;padding:8px 5px;margin-top:auto}
 .tech-prereq{font-size:13px!important;margin-top:10px!important;color:#dfbb7f}
 @media(max-width:760px){.unit-panel{right:8px;top:auto;bottom:10px;transform:none;width:min(320px,calc(100vw - 16px));max-height:56dvh;padding:12px}.unit-panel .actions{display:grid;grid-template-columns:1fr 1fr;flex-basis:auto}.unit-panel .actions button{min-width:0}.battle-hint{bottom:9px;left:9px;max-width:calc(100vw - 18px)}.camera-controls{bottom:auto;top:132px;right:9px}.tech-tree{min-height:360px}.tech-column{min-width:160px}.tech-node{min-height:185px}.objective{max-width:55%;top:89px;font-size:10px}}
+
+
+/* v9.1: clear testing mode; subtle rail/footpath HUD */
+.operator-toggle{display:flex!important;align-items:center!important;gap:18px;padding:18px 20px;border:1px solid #c4a26566;border-radius:12px;background:linear-gradient(120deg,#4c4132aa,#242c32)!important}
+.operator-toggle span{display:grid;gap:7px}
+.operator-toggle b{color:#f4ca8c;font-size:15px;letter-spacing:.03em}
+.operator-toggle small{font-size:11px;line-height:1.6;letter-spacing:0;text-transform:none;color:#d3c7ae;max-width:400px}
+.operator-toggle input{margin-left:auto;appearance:none;flex:none;width:44px!important;height:25px!important;border-radius:18px;border:1px solid #9d8662;background:#403d38;position:relative;cursor:pointer;transition:.2s}
+.operator-toggle input:before{content:'';position:absolute;top:3px;left:3px;width:17px;height:17px;border-radius:50%;background:#b6aba0;transition:.2s}
+.operator-toggle input:checked{background:#8c6b38;border-color:#f2c374}
+.operator-toggle input:checked:before{left:22px;background:#ffe2a0}
