@@ -71,7 +71,7 @@ test('old v3 naval save resumes despite having fewer weapon magazines and expand
 test('five-shell barrage HUD exposes armed state and friendly-fire risk without extra action screens',()=>{
  const h=setup();const s=h.view().state;
  const u=A.add(s,'battleship__4',0,6,8);
- s.phase='combat';s.credits=10;
+ s.tiles.forEach(t=>t.terrain='plain');s.phase='combat';s.credits=10;
  const b=A.add(s,'rifle',1,11,8),ally=A.add(s,'rifle',0,11,9);
  h.view().onClick(u);
  h.click('ability');
