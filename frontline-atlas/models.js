@@ -81,6 +81,12 @@ if(d.branch==='Infantry'){
  hullAt(g,c,0,.18,-.16,.1,.24,.18);antenna(g,0,.36,-.16,.18);
  for(let side of [-1,1]){cylinder(g,0x162d38,side*.12,.10,l*.42,.085,.13).rotation.x=Math.PI/2;box(g,0x8c9b9a,side*.12,.14,l*.44,.15,.11,.10);}
  box(g,0x687e7c,0,.37,-.25,.08,.10,.22);
+ for(let side of [-1,1]){
+  box(g,0x4e6a73,side*w*.65,.05,-l*.24,.05,.16,.26);
+  box(g,0xa0aaa1,side*w*.78,.18,l*.12,.06,.13,.18);
+  ball(g,0xa8b7b5,side*.08,.29,-.28,.035,.035,.035);
+ }
+ hullAt(g,0x536b70,0,.37,-.34,.13,.04,.29);
 }
  else if(f==='carrier'){
  hull(g,0x6b7d7c,w*1.05,l*.9,.22,.05);
