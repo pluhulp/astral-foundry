@@ -317,5 +317,55 @@ for(const f of families)if(duplicateFamilies.has(f.id)){f.retired=true;for(const
 const techLinks={siege:'heavy',missile:'td',spg:'arty',mlrs:'spg',battleship:'destroyer',carrier:'frigate',attackjet:'fighter',bomber:'fighter',sam:'aa',hospital:'ambulance',recovery:'logistics',destroyer:'frigate',frigate:'patrol',sub:'patrol',twinheli:'heli',atgun:'rocket',flamer:'assault',medevac:'medic',landing:'patrol',gunboat:'patrol',ifv:'apc',amph:'apc',transport:'heli',command:'apc'};
 for(const [id,parent] of Object.entries(techLinks))if(D[id]){D[id].techParent=parent;if(D[id].variant===0)D[id].threshold=Math.max(D[id].threshold,['siege','battleship','carrier','bomber'].includes(id)?60:20);}
 for(const d of Object.values(D)){d.move=Math.max(1,Math.min(d.branch==='Air'?5:4,Math.ceil(d.move*.65)));d.hp=Math.round(d.hp*(d.branch==='Armor'?.82:.9));d.armor=Math.round(d.armor*.7);if(d.family==='siege')d.cost=Math.max(8,d.cost);if(d.family==='carrier'||d.id==='superheavy')d.cost=Math.max(10,d.cost);d.weapons.forEach(w=>{w.power=Math.round(w.power*.72);w.range=Math.max(1,Math.min(hasTrait(d,'indirect')?5:4,w.range));});d.range=d.weapons[0].range;d.power=d.weapons[0].power;d.desc=d.desc.replace('Two wheels, eight movement:','Fast, lightly protected:').replace('Nine-tile vision','Long-range vision');d.ability.desc=d.ability.desc.replace('+2 movement','+1 movement').replace('10 tiles','8 tiles').replace('+18 power','+10 power').replace('slows its target by 2','slows its target by 1');}
+
+const navalArsenal={
+ patrol:{move:7,range:6,armament:[['30 mm bow cannon',42,6],['Aft autocannon',28,5]],role:'Fast coast guard and harassment; flanks, reconnaissance and retreat.'},
+ frigate:{move:6,range:8,armament:[['Dual-purpose naval gun',52,8],['Missile battery',41,8],['Close defense turret',28,6]],role:'Long-range anti-air escort and fleet shielding.'},
+ destroyer:{move:6,range:9,armament:[['Forward 127 mm gun',62,9],['Stern 127 mm gun',51,8],['Guided missile cells',44,9]],role:'Mobile stand-off gunship with independent ship-to-shore batteries.'},
+ battleship:{move:5,range:11,armament:[['Main battery A',78,11],['Main battery B',72,11],['Broadside turrets',56,9],['Secondary guns',42,7]],role:'Slow capital ship; devastating coordinated shore bombardment.'},
+ gunboat:{move:7,range:7,armament:[['Twin bow guns',48,7],['Stern deck gun',40,6],['Rocket turret',36,7]],role:'Shallow-water raider with independent guns and close support.'},
+ sub:{move:7,range:9,armament:[['Heavy torpedo tubes',79,9],['Wake-homing torpedo',59,8]],role:'Subsurface ambusher: torpedoes attack ships, not ground units.'},
+ landing:{move:7,range:5,armament:[['Bow support gun',29,5],['Flank machine guns',22,4]],role:'Fast amphibious insertion with cover for troops on the beach.'},
+ carrier:{move:5,range:9,armament:[['Strike squadron',43,9],['Escort missiles',37,8],['Point defense battery',30,6]],role:'Floating fleet airbase: squadrons, long-range support and replenishment.'}
+};
+function navyAbility(d){
+ const kind=d.family==='sub'?['torpedo','evasion','sonar','broadside','torpedo','screen'][d.variant]:
+ d.family==='landing'?['beachhead','evasion','sonar','broadside','bombard','beachhead'][d.variant]:
+ d.family==='carrier'?['sortie','evasion','sonar','broadside','bombard','sortie'][d.variant]:
+ ['patrol','frigate','destroyer','battleship','gunboat'].includes(d.family)?
+ (d.variant===0?({patrol:'evasion',frigate:'screen',destroyer:'broadside',battleship:'bombard',gunboat:'broadside'}[d.family]):['evasion','evasion','sonar','broadside','bombard','fleetpatch'][d.variant]):'sonar';
+ const templates={
+ bombard:{name:'Five-shell saturation',desc:'Arm your next gun: fire five impacts in a cross (target + 4 adjacent tiles). Allies can be HIT. Consumes one gun shot.',cost:2,cooldown:3},
+ broadside:{name:'Rolling broadside',desc:'After firing, reload the breeches on up to two spent guns with remaining ammo and fire them again.',cost:1,cooldown:3},
+ evasion:{name:'Flank-speed smoke wake',desc:'Before moving, gain +2 movement and generate defensive smoke around this vessel through the enemy response.',cost:1,cooldown:3},
+ sonar:{name:'Active sonar and fire control',desc:'Reveal hostiles up to 13 tiles away, including hidden submarines, this round.',cost:0,cooldown:3},
+ fleetpatch:{name:'Damage-control flotilla',desc:'Restore 28 HP and clear engine damage on nearby friendly ships, including this vessel.',cost:2,cooldown:4},
+ screen:{name:'Chaff and decoy umbrella',desc:'Apply defensive smoke to your vessel and allied ships within 2 tiles for the enemy turn.',cost:1,cooldown:3},
+ torpedo:{name:'Coordinated torpedo run',desc:'Arm your next torpedo to inflict heavy bonus damage to a ship target. No effect on land targets.',cost:1,cooldown:3},
+ sortie:{name:'Airwing resupply sortie',desc:'Replenish aircraft ammunition and repair up to 24 HP on nearby allied aircraft, even while airborne.',cost:2,cooldown:3},
+ beachhead:{name:'Protected landing corridor',desc:'Fast-disembark embarked infantry: they can act immediately and gain defensive cover for the enemy response.',cost:1,cooldown:3}
+ };
+ return {kind,...templates[kind]};
+}
+for(const d of Object.values(D)){
+ if(d.branch!=='Navy')continue;
+ const cfg=navalArsenal[d.family];if(!cfg)continue;
+ const v=d.variant??0,scales=[1,.88,.88,.92,1.07,.94];
+ d.move=Math.max(4,cfg.move+[0,2,0,-1,-2,0][v]);
+ d.weapons=cfg.armament.map(([name,power,range],i)=>({
+  name,power:Math.max(12,Math.round(power*scales[v])),
+  range:range+(v===2?2:v===4?1:v===5?1:0),
+  capacity:i===0?4:5
+ }));
+ if(v===3||v===4){
+  d.weapons.push({name:v===3?'Broadside auxiliary':'Bombardment launcher',power:v===3?31:45,range:cfg.range+(v===4?2:0),capacity:3});
+ }
+ d.weapons=d.weapons.slice(0,4);
+ d.range=Math.max(...d.weapons.map(w=>w.range));
+ d.power=d.weapons[0].power;
+ d.desc=cfg.role+' '+d.variantName+': '+d.weapons.length+' independent weapon stations; '+d.move+' movement, '+d.range+' range.';
+ d.ability=navyAbility(d);abilities[d.id]=d.ability;
+}
+// Navy is a separate long-range branch; land-unit balance clamps must not apply to ships.
 root.Atlas={withdraw,forecast,launch,flight,income,capacity,navalMap,tileVisible,visibleTo,lineOfSight,families,abilities,abilityError,useAbility,moveBudget,smoke,baseService,recruitError,freshProfile,purchase,train,deckError,weapon,canFire,selectWeapon,rangeTiles,reload,starters,D,chapters,missions,objectiveNames,make,tile,at,has,dist,reach,move,canAttack,damage,attack,capture,support,load,unload,recruit,alive,log,check,beginEnemy,ai,beginPlayer,visible,unlock,add,passable};if(typeof module!=='undefined')module.exports=root.Atlas;
 })(typeof window!=='undefined'?window:globalThis);
