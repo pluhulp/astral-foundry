@@ -87,6 +87,6 @@ test('carrier supports airborne aircraft and beachhead landing keeps infantry re
  jet.hp=15;jet.ammo=[0];assert(!jet.landed);assert(A.useAbility(s,ship));
  assert(jet.hp>15);assert.equal(jet.ammo[0],A.D.fighter.weapons[0].capacity);
  const craft=A.add(s,'landing__5',0,8,8),marine=A.add(s,'marine',0,9,8);
- assert(A.load(s,craft,marine));assert(A.useAbility(s,craft));assert(!marine.carried);
+ assert(A.load(s,craft,marine));A.beginEnemy(s);A.beginPlayer(s);assert(A.useAbility(s,craft));assert(!marine.carried);
  assert(!marine.moved&&!marine.fired);assert.equal(marine.smokeUntil,s.turn+1);assert(marine.entrenched);
 });
