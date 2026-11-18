@@ -1,3 +1,22 @@
+# Frontline Atlas v9.3 — Naval Warfare: Bluewater Overhaul
+
+## Warships are now a fleet, not floating tanks
+
+- **Sea-dominant maps**: 32 naval-compatible missions feature broad connected offshore water lanes. Coastal and island theater maps allocate about 39–57% of the board to sea; mixed inland theaters now have substantial lower channels. Land objectives and existing infantry routes remain reachable.
+- **More ships to fight**: every naval mission has an opposing fleet with 2–4 waterborne enemy ships. Three friendly naval deployment pads allow a larger initial fleet.
+- **Actual navy speed and range**: patrols, gunboats and landing craft move up to 7 tiles; destroyers/frigates around 6; capital ships around 5. Basic ranges span 5–11 tiles, growing further on radar variants, rather than the previous global 4-tile cap. Ships have improved naval spotting.
+- **Independent gun mounts**: all eight naval platforms have 2–4 weapon stations, and each one fires using its own ammo and action. Three-dimensional ship models have separated turrets; carrier, submarine and landing craft have rebuilt deck features.
+- **Mobile naval artillery**: naval gunnery can fire after moving, including indirect battleship fire. Short-range land weapon systems retain their existing restrictions.
+- **FIVE-shell bombardment**: activate the 'Five-shell saturation' ability, then fire at a visible enemy. One selected gun fires five separate impacts: the target and the four cardinally adjacent tiles. Each adjacent impact deals 65% of its normal damage to any unit on that tile, INCLUDING allies. One gun charge is spent. Friendly-fire risk is shown in the preview.
+- **Varied naval specialization**: six research configurations across each naval family, featuring shoot-and-scoot attacks, evasive wake smoke, sonar/stealth counterplay, rolling broadsides, bombardment launchers, ship repair flotillas, torpedo runs, protected landing corridors and carrier aircraft resupply sorties. These are implemented gameplay abilities, not just text labels.
+- **Old naval battles continue working**: saved ammo and used-gun arrays are safely expanded to fit the new armament; purchased units, progression and profile storage remain unchanged.
+- **Visual environment**: naval theaters extend the ocean floor into the background, with distant islands rather than trees growing out of the sea. Empty barrage impacts show effects without fake "-0" damage numbers.
+
+### Testing
+Run `node --test *.test.cjs` inside `frontline-atlas/`. Naval-specific regressions live in `naval.test.cjs`: 32 navigable sea maps, ship range and speed, multi-battery firing, five-shot friendly fire, marine beachheads, sonar vs silent-running, ship repositions, fleet support and migration of legacy ship magazines.
+
+---
+
 # Frontline Atlas v9.2 — Cohesive World & Toy Attic
 
 - Toy biome is a continuous deep-green felt playfield. The surrounding ground meets tile-top elevation and uses the exact same material color, so previously void spaces no longer reveal a brown gap or cliff.
