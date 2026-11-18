@@ -39,7 +39,7 @@ test('operator setting opens every mission and unit without modifying real unloc
  h.click('deck-toggle','siege');
  assert(h.saved().profile.deck.includes('siege'),'heavy specialist should be virtually unlocked');
  h.click('deploy');
- const s=h.view().state;assert(s.operator);assert.equal(s.credits,999);
+ const s=h.view().state;assert(s.operator);assert.equal(s.credits,999);assert.equal(s.upgrades.siege,3);
  assert.equal(A.capacity(s),30);
  const beforeSupply=s.credits;h.click('spawn','siege');h.view().onClick(s.pads[0]);
  assert.equal(s.credits,beforeSupply);
