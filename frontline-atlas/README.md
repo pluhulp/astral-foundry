@@ -1,4 +1,18 @@
-# Frontline Atlas — v9: contested frontiers
+# Frontline Atlas — v9.1: Operator & Terrain
+
+## What's improved
+- **Operator mode**: Settings → Operator mode makes all 80 missions, 312 active unit configurations, research branches, and unlimited battle supply available for testing. Operator battles have a temporary 30-unit cap and do **not** award credits or campaign progress. Original purchases, training and cleared missions are preserved. Turn off Operator mode and start a new battle to return to normal progression. Operator status on an active test battle is preserved even if the setting is subsequently turned off.
+- **Roads**: Main arteries and connectors are straight, road markings align with their neighbor tiles, intersections have clean junction markings, and the old road-overlay stacking is removed.
+- **Movement**: Ground Armor begins with +1 movement when standing on a road or bridge. Infantry standing on narrow footpaths gain +1. These are turn-budget bonuses, not additive per-road-tile bonuses. Air and Navy receive no terrain movement benefits.
+- **Landscape**: Mountain and hill objects use uneven faceted ridge meshes rather than repeated cones/rounded blobs, forests have varied trees, and the map sits on a biome-colored outdoor ground plane rather than the sky background. Distant cliffs use angular rock silhouettes.
+- **Save compatibility**: Storage key and version remain unchanged; existing player progress is retained.
+
+## Regression verification
+`node --test *.test.cjs` in the `frontline-atlas/` folder, including checks for operator isolation, road/path movement by branch, 80-map facility connectivity, and terrain geometry.
+
+---
+
+# Previous v9: Contested Frontiers
 
 Standalone turn-based 3D tactics game. No build step or external assets are needed; serve `frontline-atlas/` over HTTP. The repository-root space game is independent and unchanged.
 

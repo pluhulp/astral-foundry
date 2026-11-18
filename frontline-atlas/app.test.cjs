@@ -9,7 +9,7 @@ function harness(A,source,initial={}){
  const storage={getItem:k=>data.get(k)||null,setItem:(k,v)=>data.set(k,v)};
  new Function('Atlas','document','window','localStorage','matchMedia','AtlasView','setTimeout','clearTimeout',source)(A,document,{scrollTo(){}},storage,()=>({matches:false}),View,()=>0,()=>{});
  const click=(action,id)=>listeners.click({target:{closest:()=>({dataset:{do:action,id:id===undefined?undefined:String(id)},disabled:false})}});
- return {nodes,node,click,view:()=>View.instance,saved:()=>JSON.parse(data.get('frontline-atlas-v3')||'null'),key:e=>listeners.keydown({target:{tagName:'BODY'},preventDefault(){},...e})};
+ return {nodes,node,click,change:(id,checked)=>listeners.change({target:{id,checked,value:checked}}),view:()=>View.instance,saved:()=>JSON.parse(data.get('frontline-atlas-v3')||'null'),key:e=>listeners.keydown({target:{tagName:'BODY'},preventDefault(){},...e})};
 }
 
 test('boot opens main menu without starting a battle',()=>{let h=harness(A,source);assert(h.node('screen-content').innerHTML.includes('FRONTLINE'));assert(h.node('battle').hidden);assert.equal(h.view(),undefined);});
@@ -28,3 +28,26 @@ test('one-click enemy shot fires immediately and shift-click retains optional fo
 test('force roster focuses an owned troop and exposes its actions',()=>{let h=setup();place(h,'light');h.node('end-turn').onclick();const u=A.alive(h.view().state,0)[0];h.click('focus-unit',u.id);assert(h.node('battle-force').innerHTML.includes('Kestrel light tank'));assert(h.node('unit-panel').innerHTML.includes('Main gun'));assert(Number.isFinite(h.view().pan.x));});
 
 test('side-panel uses compact combat actions and displays expandable command capacity',()=>{const h=setup();place(h,'rifle');h.node('end-turn').onclick();const u=A.alive(h.view().state,0)[0];h.view().onClick(u);const html=h.node('unit-panel').innerHTML;assert(html.includes('status-chips'));assert(!html.includes('>Move<'));assert(h.node('battle-stats').textContent.includes('/10 troops'));});
+
+test('operator setting opens every mission and unit without modifying real unlocks or victories',()=>{
+ const h=harness(A,source),before=h.saved();h.click('settings');
+ assert(h.node('screen-content').innerHTML.includes('Operator mode'));
+ h.change('operator',true);
+ assert.equal(h.saved().profile.settings.operator,true);
+ h.click('campaign');assert(!h.node('screen-content').innerHTML.includes('Locked'));
+ h.click('mission',79);assert(h.node('screen-content').innerHTML.includes('Battlegroup'));
+ h.click('deck-toggle','siege');
+ assert(h.saved().profile.deck.includes('siege'),'heavy specialist should be virtually unlocked');
+ h.click('deploy');
+ const s=h.view().state;assert(s.operator);assert.equal(s.credits,999);assert.equal(s.upgrades.siege,3);
+ assert.equal(A.capacity(s),30);
+ const beforeSupply=s.credits;h.click('spawn','siege');h.view().onClick(s.pads[0]);
+ assert.equal(s.credits,beforeSupply);
+ s.result='victory';h.click('resume');
+ const saved=h.saved();
+ assert.equal(saved.profile.credits,before?.profile?.credits??8);
+ assert.equal(saved.profile.unlocked.length,A.starters.length);
+ assert.equal(Object.keys(saved.profile.completed).length,0);
+ h.click('settings');h.change('operator',false);
+ assert.equal(h.saved().profile.settings.operator,false);
+});

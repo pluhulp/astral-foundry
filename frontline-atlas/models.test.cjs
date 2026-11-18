@@ -6,3 +6,15 @@ test('GPU terrain batches preserve every source transform and reduce draw object
 test('each family has six distinct geometry/equipment signatures',()=>{const crypto=require('node:crypto');for(const f of A.families){let hashes=f.variants.map(id=>{let g=context.window.AtlasModels.model(id);g.updateMatrixWorld(true);let parts=[];g.traverse(o=>{if(o.isMesh)parts.push([Array.from(o.geometry.attributes.position.array),o.matrixWorld.elements,o.material.color.getHex()]);});return crypto.createHash('sha256').update(JSON.stringify(parts)).digest('hex');});assert.equal(new Set(hashes).size,6,f.id);}});
 test('models have intentionally different footprint proportions instead of filling tiles',()=>{let ratios=[];for(let id of ['bike','supply','siege','carrier','fighter','rifle']){let g=context.window.AtlasModels.model(id);g.updateMatrixWorld(true);let size=new T.Box3().setFromObject(g).getSize(new T.Vector3());ratios.push(size.x/size.z);}assert(Math.max(...ratios)-Math.min(...ratios)>.5);assert(ratios[0]<ratios[2]);});
 test('withdrawn troops remove their model and label rather than leaving ghost units',()=>{let V=context.window.AtlasView,v=Object.create(V.prototype),g=new T.Group(),removed=false;Object.assign(v,{state:{units:[],tiles:[],seen:[]},groups:new Map([[7,g]]),labelsMap:new Map([[7,{remove(){removed=true}}]]),unitGroup:new T.Group(),tileGroup:new T.Group(),fogGroup:new T.Group()});v.unitGroup.add(g);v.sync();assert.equal(v.unitGroup.children.length,0);assert.equal(v.groups.size,0);assert.equal(v.labelsMap.size,0);assert(removed);});
+
+test('terrain rendering builds a solid outer floor, faceted rock meshes and aligned road markings',()=>{
+ const s=A.make(A.missions[0]),V=context.window.AtlasView,v=Object.create(V.prototype);
+ Object.assign(v,{scene:new T.Scene(),tileGroup:new T.Group(),unitGroup:new T.Group(),markGroup:new T.Group(),fogGroup:new T.Group(),backdrop:new T.Group(),effects:[],animations:[],groups:new Map(),labelsMap:new Map(),labels:{innerHTML:''},renderer:null,motion:false,cameraUpdate(){},sync(){}});
+ v.scene.background=new T.Color(0x8ba9b4);
+ assert.doesNotThrow(()=>v.setState(s));
+ const floor=v.backdrop.children.find(o=>o.isMesh&&o.scale.x>=100&&o.scale.z>=100);
+ assert(floor,'background should contain a real land-colored floor');
+ const crags=v.tileGroup.children.filter(o=>o.isMesh&&o.geometry.type==='BufferGeometry');
+ assert(crags.length>0,'mountain and hill tiles should contain faceted ridge geometry');
+ assert(v.tileGroup.children.some(o=>o.isMesh&&o.position.y===.019),'road center markings should be rendered');
+});

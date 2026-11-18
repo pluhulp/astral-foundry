@@ -35,3 +35,29 @@ test('territories add immediate supply and command capacity; factories unlock a 
 test('navy deploys on 32 playable coastal and inland-water theaters',()=>{const maps=A.missions.filter(A.navalMap);assert.equal(maps.length,32);for(const m of maps){const s=A.make(m),h=A.tile(s,s.home.x,s.home.y);assert(s.pads.some(p=>p.kind==='sea'),m.name);assert(s.tiles.some(t=>t.terrain==='water'),m.name);assert.equal(A.deckError(['rifle','patrol'],m),'');}assert(A.deckError(['rifle','patrol'],A.missions[0]));});
 test('defense missions begin with 20 supply and send three scheduled waves',()=>{const m={...A.missions[5],type:'defense'},s=A.make(m);assert.equal(s.credits,20);assert(A.recruit(s,'rifle'));assert(A.launch(s));for(let i=0;i<9;i++){s.result=null;A.beginPlayer(s);}assert.equal(s.waves,3);assert(s.log.some(e=>e.text.includes('WAVE 3/3')));});
 test('elevated firing positions grant one additional range',()=>{const s=field(),a=A.add(s,'light',0,4,4),b=A.add(s,'rifle',1,4+A.weapon(a).range+1,4);b.ammo=[0];A.add(s,'scout',0,7,5);assert(!A.canAttack(s,a,b));A.tile(s,4,4).terrain='hill';assert(A.canAttack(s,a,b));});
+
+test('straight connected roads and genuine infantry-only footpath decorations',()=>{
+ const s=A.make(A.missions[0]),y=Math.floor(s.h/2);
+ for(let x=1;x<s.w-1;x++)assert(['road','bridge'].includes(A.tile(s,x,y).terrain),'main road '+x);
+ assert(s.tiles.some(t=>t.path&&t.pathAxis==='x'&&t.terrain!=='road'));
+});
+test('roads grant +1 movement only to armor; paths grant +1 only to infantry',()=>{
+ const s=field(),vehicles=A.add(s,'light',0,4,4),foot=A.add(s,'rifle',0,6,6),air=A.add(s,'drone',0,8,8),ship=A.add(s,'patrol',0,10,10);
+ for(const u of [vehicles,foot,air,ship])Object.assign(A.tile(s,u.x,u.y),{terrain:'plain',path:false});
+ const base=[vehicles,foot,air,ship].map(u=>A.moveBudget(s,u));
+ A.tile(s,4,4).terrain='road';A.tile(s,6,6).path=true;A.tile(s,8,8).path=true;A.tile(s,10,10).terrain='bridge';
+ assert.equal(A.moveBudget(s,vehicles),base[0]+1);
+ assert.equal(A.moveBudget(s,foot),base[1]+1);
+ assert.equal(A.moveBudget(s,air),base[2]);
+ assert.equal(A.moveBudget(s,ship),base[3]);
+ A.tile(s,4,4).terrain='plain';A.tile(s,4,4).path=true;
+ assert.equal(A.moveBudget(s,vehicles),base[0],'vehicle should not gain footpath movement');
+});
+test('operator battle retains save-safe finite supply, extra command capacity and refunds',()=>{
+ const s=A.make(A.missions[0]);s.operator=true;s.credits=999;
+ assert.equal(A.capacity(s),30);
+ const h=A.tile(s,s.home.x,s.home.y),u=A.recruit(s,'rifle',h);
+ assert(u);assert.equal(s.credits,999);assert(A.withdraw(s,u));assert.equal(s.credits,999);
+ A.recruit(s,'rifle',h);A.launch(s);A.beginPlayer(s);
+ assert.equal(s.credits,999);
+});
