@@ -93,6 +93,68 @@ else if(t.facility==='factory'){box(g,0xa6ab99,0,.25,0,.73,.43,.6);box(g,col,0,.
 else{box(g,0xc6bea4,-.12,.24,0,.48,.42,.5);let roof=cone(g,0x786d59,-.12,.55,0,.38,.25);roof.rotation.y=Math.PI/4;box(g,0x49666b,-.23,.28,.26,.1,.12,.02);box(g,0x63756c,-.04,.17,.26,.1,.26,.02);box(g,0xa3a58d,.28,.15,-.12,.24,.25,.25);}
 rod(g,0xc0baa3,[.39,0,.3],[.39,.95,.3],.012);let flag=box(g,col,.49,.84,.3,.2,.13,.012);g.userData.flag=flag;}
 });this.batchTerrain();this.cameraUpdate();this.sync();}
+makeToyRoom(s){
+ const g=this.backdrop,W=s.w/2,H=s.h/2,zBack=-H-8,xRight=W+8;
+ const pine=0x765943,plaster=0xb3a089,trim=0x5b4639,cloth=TOY_FELT;
+ // Two proper attic walls, baseboards and overhead beams, all BEHIND the playfield.
+ const back=box(g,plaster,0,4.6,zBack,W*2+19,9.2,.46);back.userData.roomPart='back-wall';
+ const side=box(g,0xa9937d,xRight,4.6,-.6,.46,9.2,H*2+19);side.userData.roomPart='side-wall';
+ box(g,trim,0,.30,zBack+.31,W*2+19,.60,.27);
+ box(g,trim,xRight-.31,.30,-.6,.27,.60,H*2+19);
+ box(g,0x684e3c,0,9.15,zBack+.27,W*2+19,.45,.35);
+ for(let j=0;j<6;j++){
+  const x=-W-6+j*(W*2+12)/5;
+  box(g,pine,x,4.7,zBack+.44,.22,9.0,.27);
+  rod(g,pine,[x,9.15,zBack+.45],[x+1.7,10.65,zBack+4.3],.18);
+ }
+ for(let j=0;j<4;j++)box(g,0x765942,xRight-.39,4.7,-H-5+j*(H*2+9)/3,.25,9.0,.26);
+ // Framed attic window, a pale sky pane and dark wooden muntins.
+ const wx=-W*.13,wz=zBack+.55;
+ const win=box(g,trim,wx,6.12,wz,4.3,3.05,.19);win.userData.roomPart='window-frame';
+ box(g,0x9fbac1,wx,6.12,wz+.12,3.75,2.55,.025);
+ box(g,0xa4c3cb,wx-.91,6.12,wz+.144,1.76,2.41,.01);
+ box(g,0x85a9af,wx+.91,6.12,wz+.144,1.76,2.41,.01);
+ box(g,pine,wx,6.12,wz+.22,.13,2.77,.15);
+ box(g,pine,wx,6.11,wz+.22,3.95,.13,.15);
+ box(g,0xd9c6a0,wx,4.48,wz+.50,4.65,.21,.60);
+ // Tall shelf with a few distinct silhouettes rather than dozens of scattered toys.
+ const sx=-W*.78,sz=zBack+1.7;
+ for(const dx of [-2.0,2.0])box(g,pine,sx+dx,2.45,sz,.19,4.9,1.18);
+ for(const yy of [.25,2.1,4.13])box(g,0x947357,sx,yy,sz,4.4,.17,1.25);
+ for(let k=0;k<10;k++){
+  const h=1.05+(k%3)*.17,xx=sx-1.58+k*.32;
+  const book=box(g,TOY_PALETTE[(k+1)%5],xx,2.2+h*.5,sz,.23,h,.73);
+  book.rotation.z=(k%4-1.5)*.035;
+  box(g,0xdfcfaa,xx,2.2+h*.5,sz+.38,.16,h*.70,.015);
+ }
+ for(let k=0;k<3;k++){const xx=sx-1.2+k*1.25;box(g,TOY_PALETTE[(k+2)%5],xx,.55,sz,.64,.54,.66);box(g,0xe0ccaa,xx,.85,sz,.50,.08,.55);}
+ // Cardboard packing crates, sealed with crossing tape and stencil-like panels.
+ const cartons=[{x:W*.61,z:zBack+2.3,w:2.45,h:2.0,d:2.0},{x:W*.76,z:zBack+4.7,w:2.8,h:1.3,d:1.7},{x:W*.37,z:zBack+3.2,w:1.6,h:1.0,d:1.5}];
+ for(let i=0;i<cartons.length;i++){const v=cartons[i],y=v.h/2;box(g,i%2?0xbda078:0xc4aa80,v.x,y,v.z,v.w,v.h,v.d);box(g,0xe0c799,v.x,v.h+.012,v.z,.21,.025,v.d);box(g,0x94734d,v.x,v.h*.52,v.z+v.d/2+.018,v.w*.6,.10,.024);box(g,0x9b7e5a,v.x+v.w*.27,y,v.z+v.d/2+.03,.06,v.h*.52,.025);}
+ // A wooden toy chest sits at the right edge, not on any gameplay tile.
+ const tx=W+4,tz=H*.25;
+ box(g,0x7b5945,tx,.78,tz,3.7,1.55,2.65);
+ const lid=box(g,0xa97e5b,tx,1.65,tz-.16,3.85,.28,2.78);lid.rotation.x=-.13;
+ box(g,0xd9b87c,tx,1.16,tz+1.34,1.28,.36,.06);
+ for(const dx of [-1.4,1.4])box(g,0xb9a174,tx+dx,.83,tz+1.36,.12,1.30,.08);
+ for(const dx of [-1.2,.0,1.2])box(g,0xc39d65,tx+dx,.47,tz+1.40,.32,.09,.05);
+ // A clean model railway stays outside the battle tiles.
+ const railZ=zBack+3.2,railA=-W*.37,railB=W*.18;
+ for(const dz of [-.24,.24])rod(g,0x66716b,[railA,.035,railZ+dz],[railB,.035,railZ+dz],.033);
+ for(let i=0;i<10;i++){const rx=railA+i*(railB-railA)/9;box(g,0x93735a,rx,.017,railZ,.12,.045,.85);}
+ for(let i=0;i<3;i++){
+  const gx=railA+1.1+i*1.35;
+  box(g,TOY_PALETTE[[3,1,2][i]],gx,.32,railZ,1.05,.35,.55);
+  box(g,i===0?0x516a72:0xa98a64,gx-.12,.60,railZ,.48,.27,.46);
+  for(const dx of [-.32,.32])for(const dz of [-.29,.29]){
+   const wh=cylinder(g,0x3b4c4b,gx+dx,.14,railZ+dz,.10,.07);wh.rotation.x=Math.PI/2;
+  }
+ }
+ // One giant stack of construction blocks as a distant set piece, not tile litter.
+ const fx=-W-3.2,fz=H*.12;
+ for(let j=0;j<4;j++){const yy=.38+j*.63;box(g,TOY_PALETTE[j%5],fx+(j%2)*.16,yy,fz,1.0,.62,.9);}
+ const roof=box(g,0xd8b882,fx+.06,2.87,fz,1.3,.18,1.04);roof.rotation.z=.09;
+}
 makeBackdrop(s){const b=s.mission.biome,seed=s.mission.seed||1,isToy=b==='toy',snow=b==='snow',high=b==='mountain',urban=b==='urban',desert=b==='desert';
  const land=this.groundColor||TOY_FELT;
  // A real terrain-colored world beneath the board prevents the sky from appearing as the floor.
