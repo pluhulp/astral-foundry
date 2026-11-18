@@ -46,7 +46,7 @@ test('five-shot bombardment lands at center and four orthogonal tiles, hurting f
  assert.equal(sh.bombardTurn,null);assert.equal(b.suppressedUntil,undefined,'bombard must not apply obsolete missile slow');
 });
 test('five-shell damage works on empty neighboring tiles without phantom units or zero-damage labels',()=>{
- const s=field(),target=A.add(s,'rifle',1,9,8),gun=A.add(s,'battleship',0,3,8);
+ const s=field(),target=A.add(s,'rifle',1,9,8),gun=A.add(s,'battleship__4',0,3,8);
  assert(A.useAbility(s,gun));assert(A.attack(s,gun,target));
  assert.equal(s.events.filter(e=>e.kind==='attack').length,5);
  assert.equal(s.events.filter(e=>e.kind==='attack'&&e.damage===0).length,4);
@@ -75,10 +75,11 @@ test('shoot-and-scoot allows exactly two water steps after firing and then expir
  assert(A.move(s,ship,6,8));assert(!A.reach(s,ship).size);
 });
 test('submarine silent running hides from regular sight; sonar restores detection',()=>{
- const s=field(),sub=A.add(s,'sub',1,7,8),spot=A.add(s,'rifle',0,3,8),ping=A.add(s,'frigate__2',0,2,8);
+ const s=field(),sub=A.add(s,'sub',1,7,8),spot=A.add(s,'rifle',0,3,8);
  assert(A.visibleTo(s,sub,0),'ordinary visual detection before diving');
  s.side=1;assert(A.useAbility(s,sub));s.side=0;
  assert(!A.visibleTo(s,sub,0),'silent running should conceal beyond two tiles');
+ const ping=A.add(s,'frigate__2',0,2,8);
  assert(A.useAbility(s,ping));assert(A.visibleTo(s,sub,0),'sonar should reveal silent submarine');
 });
 test('carrier supports airborne aircraft and beachhead landing keeps infantry ready and sheltered',()=>{
