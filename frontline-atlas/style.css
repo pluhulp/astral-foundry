@@ -67,3 +67,7 @@
 .operator-toggle input:before{content:'';position:absolute;top:3px;left:3px;width:17px;height:17px;border-radius:50%;background:#b6aba0;transition:.2s}
 .operator-toggle input:checked{background:#8c6b38;border-color:#f2c374}
 .operator-toggle input:checked:before{left:22px;background:#ffe2a0}
+
+/* v9.3: clear but compact cues for area-fire hazards */
+.unit-panel .status-chips .danger-chip{background:#583a31;border-color:#c98766;color:#f4d3b6;font-weight:700;letter-spacing:.03em}
+.unit-panel .fire-preview span{line-height:1.55}

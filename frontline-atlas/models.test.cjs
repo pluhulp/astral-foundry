@@ -51,3 +51,14 @@ test('toy decor is sparse, rotated, varied and coordinated instead of repeated o
  assert(rooms.some(o=>o.userData.roomPart==='side-wall'));
  assert(rooms.some(o=>o.userData.roomPart==='window-frame'));
 });
+
+test('every active naval hull has physical geometry for multiple independent weapon stations',()=>{
+ const ids=['patrol','frigate','destroyer','battleship','gunboat','landing','sub','carrier'];
+ for(const id of ids){
+  const d=A.D[id],g=context.window.AtlasModels.model(id,0);g.updateMatrixWorld(true);
+  let meshes=0;g.traverse(o=>{if(o.isMesh)meshes++;});
+  assert(d.weapons.length>=2,id+' needs at least two independent batteries');
+  assert(meshes>=12,id+' needs a developed physical hull / guns');
+  assert(A.D[id].range>=5,id+' should have longer range than land units');
+ }
+});

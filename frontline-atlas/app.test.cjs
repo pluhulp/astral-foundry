@@ -51,3 +51,31 @@ test('operator setting opens every mission and unit without modifying real unloc
  h.click('settings');h.change('operator',false);
  assert.equal(h.saved().profile.settings.operator,false);
 });
+
+test('old v3 naval save resumes despite having fewer weapon magazines and expands ammo safely',()=>{
+ const m=A.missions.find(m=>m.biome==='coast');
+ const battle=A.make(m,'normal',{},['rifle','frigate']);
+ const u=A.recruit(battle,'frigate');assert(u);
+ u.ammo=[2];u.used=[true];
+ const profile=A.freshProfile(),payload=JSON.stringify({profile,battle});
+ const h=harness(A,source,{'frontline-atlas-v3':payload});
+ assert(h.node('screen-content').innerHTML.includes('Resume operation'),'old battle should not be archived');
+ h.click('resume');
+ const loaded=h.view().state.units.find(x=>x.id===u.id);
+ assert.equal(loaded.ammo.length,A.D.frigate.weapons.length);
+ assert.equal(loaded.used.length,A.D.frigate.weapons.length);
+ assert.equal(loaded.ammo[0],2);
+ assert(loaded.ammo[1]>0);
+ assert.deepEqual(h.saved().profile.completed,{});
+});
+test('five-shell barrage HUD exposes armed state and friendly-fire risk without extra action screens',()=>{
+ const h=setup();const s=h.view().state;
+ const u=A.add(s,'battleship__4',0,6,8);
+ s.tiles.forEach(t=>t.terrain='plain');s.phase='combat';s.credits=10;
+ const b=A.add(s,'rifle',1,11,8),ally=A.add(s,'rifle',0,11,9);
+ h.view().onClick(u);
+ h.click('ability');
+ assert(h.node('unit-panel').innerHTML.includes('5-SHELL VOLLEY ARMED'));
+ h.view().onClick(b,{shiftKey:true});
+ assert(h.node('unit-panel').innerHTML.includes('FRIENDLY FIRE'));
+});
