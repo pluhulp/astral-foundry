@@ -76,10 +76,53 @@ if(d.branch==='Infantry'){
  if(v===1){shell(g,accent,[[-.05,-.4],[.05,-.4],[0,-.7]],.25,.025);}if(v===2)ball(g,0xc6d1bf,0,.05,.36,.08,.08,.08);if(v===3)for(let side of [-1,1])rack(g,c,side*.36,.18,0,3);if(v===4){for(let side of [-1,1])hullAt(g,c,side*.17,.08,-.12,.1,.55,.16);barrel(g,0,.08,.3,.35,.03);}if(v===5)pack(g,0xd4c6a3,0,-.08,-.12,.21,.3);
 }else{
  const config={patrol:[.24,.72],frigate:[.29,1.08],destroyer:[.32,1.24],battleship:[.43,1.48],landing:[.42,.87],sub:[.2,1.1],carrier:[.48,1.6],gunboat:[.34,.85]},[w,l]=config[f]||[.3,1];hull(g,0x2f4652,w,l,.02,.11,1);hull(g,c,w*.85,l*.88,.15,.04,1);
- if(f==='sub'){lathe(g,c,[[0,0],[.12,.08],[.13,.25],[.12,.8],[0,1]],0,.14,-.5).rotation.x=Math.PI/2;hullAt(g,c,0,.18,-.16,.1,.24,.18);antenna(g,0,.36,-.16,.18);}
- else if(f==='carrier'){hull(g,0x6b7d7c,w*1.05,l*.9,.22,.05);for(let z=-l*.3;z<l*.4;z+=.13)rod(g,0xd6cfa9,[-.04,.29,z],[-.04,.29,z+.07],.008);hullAt(g,c,w*.35,.28,-.2,.12,.25,.21);}
- else if(f==='landing'){hullAt(g,0xb0b8a1,0,.21,0,w*.7,l*.6,.02);hullAt(g,c,0,.2,-l*.36,w*.7,.17,.15);shell(g,0x849c93,[[-w*.35,l*.3],[w*.35,l*.3],[w*.35,l*.56],[-w*.35,l*.56]],.19,.025);}
- else{hullAt(g,accent,0,.21,-l*.12,w*.62,l*.27,.17);hullAt(g,c,0,.4,-l*.13,w*.42,.15,.08);dish(g,0,.62,-l*.18,.07);for(let i=0;i<d.weapons.length;i++){let z=i%2?-l*.35:l*.25;hullAt(g,c,0,.2,z,w*.55,.15,.09);barrel(g,(i>1?.07:0),.31,z,.23+(f==='battleship'?.13:0),.018);}}
+ if(f==='sub'){
+ lathe(g,c,[[0,0],[.12,.08],[.13,.25],[.12,.8],[0,1]],0,.14,-.5).rotation.x=Math.PI/2;
+ hullAt(g,c,0,.18,-.16,.1,.24,.18);antenna(g,0,.36,-.16,.18);
+ for(let side of [-1,1]){cylinder(g,0x162d38,side*.12,.10,l*.42,.085,.13).rotation.x=Math.PI/2;box(g,0x8c9b9a,side*.12,.14,l*.44,.15,.11,.10);}
+ box(g,0x687e7c,0,.37,-.25,.08,.10,.22);
+}
+ else if(f==='carrier'){
+ hull(g,0x6b7d7c,w*1.05,l*.9,.22,.05);
+ for(let z=-l*.3;z<l*.4;z+=.13)rod(g,0xd6cfa9,[-.04,.29,z],[-.04,.29,z+.07],.008);
+ hullAt(g,c,w*.35,.28,-.2,.12,.25,.21);
+ for(const side of [-1,1]){
+   hullAt(g,c,side*w*.78,.28,-l*.25,w*.18,.12,.15);
+   barrel(g,side*w*.78,.33,-l*.18,.25,.017);
+ }
+ for(let i=0;i<3;i++){
+   let x=-w*.25+(i%2)*w*.32,z=l*.25-i*l*.23;
+   hullAt(g,0x9bafa9,x,.34,z,.10,.09,.27);
+   shell(g,0xb7c5b5,[[x-.20,z-.04],[x+.20,z-.04],[x+.08,z+.10],[x-.08,z+.10]],.36,.018);
+   hullAt(g,0x344c51,x,.39,z-.10,.065,.025,.09);
+ }
+}
+ else if(f==='landing'){
+ hullAt(g,0xb0b8a1,0,.21,0,w*.7,l*.6,.02);
+ hullAt(g,c,0,.2,-l*.36,w*.7,.17,.15);
+ shell(g,0x849c93,[[-w*.35,l*.3],[w*.35,l*.3],[w*.35,l*.56],[-w*.35,l*.56]],.19,.025);
+ for(let side of [-1,1]){
+   hullAt(g,0x334952,side*w*.52,.30,-l*.27,.14,.14,.17);
+   barrel(g,side*w*.52,.37,-l*.20,.22,.016);
+   box(g,0xb2b19f,side*w*.46,.28,l*.18,.16,.12,.26);
+ }
+ box(g,0xc0be9f,0,.22,l*.44,w*.62,.07,.12);
+}
+ else{
+ hullAt(g,accent,0,.21,-l*.12,w*.62,l*.27,.17);
+ hullAt(g,c,0,.4,-l*.13,w*.42,.15,.08);
+ dish(g,0,.62,-l*.18,.07);
+ const n=d.weapons.length;
+ for(let i=0;i<n;i++){
+   const z=l*.39-i*l*.78/Math.max(n-1,1);
+   const side=n>2?(i%2?-.22:.22)*w:0;
+   hullAt(g,c,side,.215,z,w*.48,.145,.11);
+   hullAt(g,0x374e54,side,.305,z,w*.38,.08,.085);
+   barrel(g,side,.34,z,.22+(f==='battleship'?.13:0),.023);
+   if(f==='destroyer'||f==='frigate'||f==='battleship')barrel(g,side+.08,.34,z,.21+(f==='battleship'?.13:0),.015);
+ }
+ for(let side of [-1,1]){box(g,0x799494,side*w*.7,.19,-l*.10,.09,.17,.18);}
+}
  if(v===1)for(let side of [-1,1])hullAt(g,c,side*w*.55,.05,-.1,.06,l*.65,.07,1);if(v===2)dish(g,w*.25,.55,0,.13);if(v===3)rack(g,c,0,.3,l*.08,4);if(v===4){hullAt(g,c,0,.22,-l*.32,w*.7,.23,.18);barrel(g,0,.43,-l*.2,.42,.03);}if(v===5)pack(g,0xbfb38f,0,.26,l*.1,w*.7,.24);
 }
 g.userData.variant=type;return g;}
