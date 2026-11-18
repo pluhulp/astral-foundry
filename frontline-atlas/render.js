@@ -62,12 +62,27 @@ bind(){let down=null,drag=false;this.canvas.addEventListener('pointerdown',e=>{d
 resize(){let r=this.canvas.parentElement.getBoundingClientRect();this.w=r.width;this.h=r.height;if(this.renderer)this.renderer.setSize(this.w,this.h,false);else{this.canvas.width=this.w;this.canvas.height=this.h;}this.cameraUpdate();}
 cameraUpdate(){const target={angle:this.angle,tilt:this.tilt,zoom:this.zoom,x:this.pan.x,y:this.pan.y};if(!this.cameraEase)this.cameraEase={...target};let moving=false;for(const key of Object.keys(target)){const error=target[key]-this.cameraEase[key];if(Math.abs(error)>.001){this.cameraEase[key]+=error*.24;moving=true;}else this.cameraEase[key]=target[key];}this.cameraAnimating=moving;const v=this.cameraEase;let size=(this.state?Math.max(this.state.w,this.state.h)*.58:15)/v.zoom,ratio=this.w/this.h;this.camera.left=-size*ratio;this.camera.right=size*ratio;this.camera.top=size;this.camera.bottom=-size;this.camera.position.set(Math.sin(v.angle)*35,Math.sin(v.tilt)*40,Math.cos(v.angle)*35);this.camera.lookAt(-v.x,0,v.y);this.camera.updateProjectionMatrix();this.camera.updateMatrixWorld();this.staticFaces=null;this.dirty=true;}
 clear(group){while(group.children.length)group.remove(group.children[0]);}
-setState(s){this.staticFaces=null;this.dirty=true;this.animations=[];this.effects.forEach(e=>{e.el?.remove();this.scene.remove(e.fx);});this.effects=[];this.state=s;this.clear(this.tileGroup);this.clear(this.unitGroup);this.clear(this.backdrop);this.groups.clear();this.labels.innerHTML='';this.labelsMap.clear();let biome=s.mission.biome;this.scene.background.set(({grass:0x8eb4c0,desert:0xe1b47f,snow:0xa3bbcc,urban:0x899ead,coast:0x8cb7bf,islands:0x8dbfba,toy:0xa58c78,mountain:0x8fa7bd})[biome]||0x91a9b4);this.scene.fog=new T.Fog(this.scene.background,38,78);let palette=biome==='desert'?[0xbca678,0xc7b486,0xd4c296]:biome==='snow'?[0xd7dfd7,0xcad6d0,0xe5e9dd]:biome==='urban'?[0x657581,0x73818c,0x87949b]:biome==='coast'?[0xbcae7d,0xcbbb8c,0xad9f72]:biome==='islands'?[0x4b8c70,0x619878,0x74aa87]:biome==='toy'?[TOY_FELT,TOY_FELT,TOY_FELT]:biome==='mountain'?[0x6e8a82,0x819b90,0xa5b6a1]:[0x60866c,0x6d9379,0x80a28a];this.groundColor=palette[1];this.fogSeenMat=new T.MeshBasicMaterial({color:0x14241e,transparent:true,opacity:.13,depthWrite:false});this.fogHiddenMat=new T.MeshBasicMaterial({color:0x14241e,transparent:true,opacity:.34,depthWrite:false});this.makeBackdrop(s);
+setState(s){this.staticFaces=null;this.dirty=true;this.animations=[];this.effects.forEach(e=>{e.el?.remove();this.scene.remove(e.fx);});this.effects=[];this.state=s;this.clear(this.tileGroup);this.clear(this.unitGroup);this.clear(this.backdrop);this.groups.clear();this.labels.innerHTML='';this.labelsMap.clear();let biome=s.mission.biome;this.scene.background.set(({grass:0x8eb4c0,desert:0xe1b47f,snow:0xa3bbcc,urban:0x899ead,coast:0x8cb7bf,islands:0x8dbfba,toy:0xa58c78,mountain:0x8fa7bd})[biome]||0x91a9b4);this.scene.fog=new T.Fog(this.scene.background,38,78);let palette=biome==='desert'?[0xbca678,0xc7b486,0xd4c296]:biome==='snow'?[0xd7dfd7,0xcad6d0,0xe5e9dd]:biome==='urban'?[0x657581,0x73818c,0x87949b]:biome==='coast'?[0xbcae7d,0xcbbb8c,0xad9f72]:biome==='islands'?[0x4b8c70,0x619878,0x74aa87]:biome==='toy'?[TOY_FELT,TOY_FELT,TOY_FELT]:biome==='mountain'?[0x6e8a82,0x819b90,0xa5b6a1]:[0x60866c,0x6d9379,0x80a28a];this.groundColor=palette[1];this.fogSeenMat?.dispose();this.fogHiddenMat?.dispose();this.fogSeenMat=new T.MeshBasicMaterial({color:0x14241e,transparent:true,opacity:.13,depthWrite:false});this.fogHiddenMat=new T.MeshBasicMaterial({color:0x14241e,transparent:true,opacity:.34,depthWrite:false});this.makeBackdrop(s);
 
 
 s.tiles.forEach(t=>{if(t.terrain==='void')return;let x=t.x-s.w/2+.5,z=t.y-s.h/2+.5,n=(t.x*17+t.y*31)%13,c=t.terrain==='water'?0x397d8a:t.terrain==='road'||t.terrain==='bridge'?0x626c69:biome==='toy'?TOY_FELT:new T.Color(palette[1]).multiplyScalar(.99+(n%5)*.004).getHex();let tile=box(this.tileGroup,c,x,-.25,z,1,.5,1);tile.userData.tile=t;
 if(t.pad){box(this.tileGroup,0x344e59,x,.025,z,.82,.035,.82);for(let i=-2;i<=2;i++)box(this.tileGroup,0xc7ba86,x+i*.13,.049,z,.05,.01,.65);}
-if(t.terrain==='mountain'){const rock=biome==='snow'?0xbccbd0:biome==='desert'?0x9c8876:0x526a69;crag(this.tileGroup,rock,x,.025,z,.92,.82+(n%3)*.09,.89,n%5);crag(this.tileGroup,biome==='snow'?0xe6eae4:biome==='desert'?0xc1a68b:0x81958c,x+.18,.21,z-.12,.44,.32,.42,(n+2)%5);for(let k=0;k<2;k++)box(this.tileGroup,0x778c84,x-.31+k*.56,.065,z+.3,.18,.08,.13);}
+if(t.terrain==='mountain'){
+ if(biome==='toy'){
+  // The mountain terrain is a cardboard obstacle: clustered folded ridges, not a cone on every tile.
+  box(this.tileGroup,0x65786d,x,.055,z,.96,.11,.96);
+  if((t.x*13+t.y*7+s.mission.seed)%4===0){
+   const ridge=crag(this.tileGroup,0x9d967b,x,.115,z,1.03,.61,.88,(n+2)%5);
+   ridge.rotation.y=((n%3)-1)*.15;
+   box(this.tileGroup,0xc3b18e,x-.1,.15,z+.28,.5,.12,.2);
+  }
+ }else{
+  const rock=biome==='snow'?0xbccbd0:biome==='desert'?0x9c8876:0x526a69;
+  crag(this.tileGroup,rock,x,.025,z,.92,.82+(n%3)*.09,.89,n%5);
+  crag(this.tileGroup,biome==='snow'?0xe6eae4:biome==='desert'?0xc1a68b:0x81958c,x+.18,.21,z-.12,.44,.32,.42,(n+2)%5);
+  for(let k=0;k<2;k++)box(this.tileGroup,0x778c84,x-.31+k*.56,.065,z+.3,.18,.08,.13);
+ }
+}
 if(t.objective){for(let dx of [-.45,.45])box(this.tileGroup,0xe1b568,x+dx,.055,z,.04,.04,.9);}
 if(t.terrain==='water'){box(this.tileGroup,0x77a9ab,x-.18,.008,z+.22,.35,.008,.012);if(n%2)box(this.tileGroup,0x61979c,x+.2,.008,z-.2,.21,.008,.012);}
 if(t.path){const dz=t.pathAxis==='x';box(this.tileGroup,biome==='snow'?0xd2d5c6:biome==='desert'?0xaa926d:0x9b906f,x,.012,z,dz?.96:.20,.018,dz?.20:.96);for(let j=0;j<3;j++)box(this.tileGroup,0xd0c4a1,x+(dz?(j-1)*.3:.04),.025,z+(dz?.035:(j-1)*.3),.07,.018,.048);}
