@@ -1,6 +1,30 @@
-# Frontline Atlas — v8
+# Frontline Atlas — v9: contested frontiers
 
-Standalone turn-based tactics game inside `frontline-atlas/`. The repository-root space game is independent and unchanged. Serve this directory over HTTP; no build step or external assets are required.
+Standalone turn-based 3D tactics game. No build step or external assets are needed; serve `frontline-atlas/` over HTTP. The repository-root space game is independent and unchanged.
+
+## What's new
+
+- **80 campaign missions, eight theaters:** Greenline, Dust Frontier, Tidebreak, White Reach, Skyfall, Iron Meridian, **Playroom Rebellion** (toy-soldier attic), and **Highland Storm** (mountain passes).
+- **32 water-enabled missions:** coastal chapters and selected other stages now provide water, legal naval pads, and ship deployment opportunities.
+- **Territorial economy:** 1 supply per round (2 while holding at least one factory). Capturing an outpost awards immediate supply: +3 factories, +2 towns, +1 other facilities. The bank is capped at 24.
+- **Dynamic force limit:** initial maximum of 10 active troops; captured towns add +2 slots and other non-HQ facilities +1, to a maximum of 20.
+- **Real research dependencies:** variants appear in branching connected research columns. Heavy specialization branches have prerequisite troops and earned-credit requirements. Eight redundant troop families are retired from new purchasing but retained in the database for existing saves; 52 families and 312 variants remain purchasable.
+- **Better challenges:** objectives have entrenched sentries, enemy squads prioritize nearby threats and contested outposts, and capturing territory triggers enemy counterattacks. AI retreats only at critical health, rather than spending much of a battle running away.
+- **Three-wave defense mode:** 20 starting supply and three escalating assaults on rounds 3, 6, and 9. Survive with the HQ intact and clear attackers after round 12.
+- **Landscape variety:** seeded terrain ridges instead of isolated random obstacles, layered mountains, raised hills, stylized toy blocks, distant skyline / alpine range / woods / attic environments, clouds, and rain or snow in selected theaters.
+- **Command speed:** click teal destination tiles to move and auto-capture; click an enemy directly to fire if legal. Shift-click a hostile to preview damage/retaliation before confirming. Most direct-fire troops can fire after moving; indirect weapons still require setup.
+- **UI & camera:** compact side-mounted unit and HQ controls; W/A/S/D pan, Q/E rotate, scroll zoom, right-drag or Shift-drag pan, left-drag orbit, plus eased camera movement.
+- **Model fixes:** towed weapons now have proper solid gun carriages; existing family/variant silhouettes are retained.
+
+## Compatibility and verification
+
+Existing storage remains under `frontline-atlas-v3`, preserving completed missions, owned variants, spending currency and current v3 battles. The eight retired families still load in old saves; they simply no longer appear as new research choices.
+
+Automated tests run with `node --test *.test.cjs` in `frontline-atlas/`. GitHub Actions executes the suite on changes to this branch. Coverage includes mission maps/connectivity, supply limits, new defense waves, AI turns, progression, model geometry, and simulated UI interaction. Full WebGL/GPU visual validation should be performed in a browser with graphics acceleration before regarding art polish as complete.
+
+---
+
+## Previous v8 behavior
 
 ## v8 command and combat polish
 
