@@ -324,7 +324,7 @@ cameraUpdate(force=false){
  this.staticFaces=null;this.dirty=true;
 }
 clear(group){while(group.children.length)group.remove(group.children[0]);}
-setState(s){this.staticFaces=null;this.dirty=true;this.animations=[];this.effects.forEach(e=>{e.el?.remove();this.scene.remove(e.fx);});this.effects=[];if(!this.impactGroup){this.impactGroup=new T.Group();this.scene.add(this.impactGroup);}this.clear(this.impactGroup);this.impactHistory=[];this.state=s;this.slopeSurfaces=[];this.clear(this.tileGroup);this.clear(this.unitGroup);this.clear(this.backdrop);this.groups.clear();this.wakes=[];this.labels.innerHTML='';this.labelsMap.clear();let biome=s.mission.biome;this.scene.background.set(({grass:0x8eb4c0,desert:0xe1b47f,snow:0xa3bbcc,urban:0x899ead,coast:0x8cb7bf,islands:0x8dbfba,toy:0xa58c78,mountain:0x8fa7bd})[biome]||0x91a9b4);this.scene.fog=new T.Fog(this.scene.background,38,78);let palette=biome==='desert'?[0xbca678,0xc7b486,0xd4c296]:biome==='snow'?[0xd7dfd7,0xcad6d0,0xe5e9dd]:biome==='urban'?[0x657581,0x73818c,0x87949b]:biome==='coast'?[0xbcae7d,0xcbbb8c,0xad9f72]:biome==='islands'?[0x4b8c70,0x619878,0x74aa87]:biome==='toy'?[TOY_FELT,TOY_FELT,TOY_FELT]:biome==='mountain'?[0x6e8a82,0x819b90,0xa5b6a1]:[0x60866c,0x6d9379,0x80a28a];this.groundColor=palette[1];this.fogSeenMat?.dispose();this.fogHiddenMat?.dispose();this.fogSeenMat=new T.MeshBasicMaterial({color:0x14241e,transparent:true,opacity:.13,depthWrite:false});this.fogHiddenMat=new T.MeshBasicMaterial({color:0x14241e,transparent:true,opacity:.34,depthWrite:false});this.makeBackdrop(s);
+setState(s){this.staticFaces=null;this.dirty=true;this.animations=[];this.effects.forEach(e=>this.retireEffect(e));this.effects=[];if(!this.impactGroup){this.impactGroup=new T.Group();this.scene.add(this.impactGroup);}this.clear(this.impactGroup);this.impactHistory=[];this.state=s;this.slopeSurfaces=[];this.clear(this.tileGroup);this.clear(this.unitGroup);this.clear(this.backdrop);this.groups.clear();this.wakes=[];this.labels.innerHTML='';this.labelsMap.clear();let biome=s.mission.biome;this.scene.background.set(({grass:0x8eb4c0,desert:0xe1b47f,snow:0xa3bbcc,urban:0x899ead,coast:0x8cb7bf,islands:0x8dbfba,toy:0xa58c78,mountain:0x8fa7bd})[biome]||0x91a9b4);this.scene.fog=new T.Fog(this.scene.background,38,78);let palette=biome==='desert'?[0xbca678,0xc7b486,0xd4c296]:biome==='snow'?[0xd7dfd7,0xcad6d0,0xe5e9dd]:biome==='urban'?[0x657581,0x73818c,0x87949b]:biome==='coast'?[0xbcae7d,0xcbbb8c,0xad9f72]:biome==='islands'?[0x4b8c70,0x619878,0x74aa87]:biome==='toy'?[TOY_FELT,TOY_FELT,TOY_FELT]:biome==='mountain'?[0x6e8a82,0x819b90,0xa5b6a1]:[0x60866c,0x6d9379,0x80a28a];this.groundColor=palette[1];this.fogSeenMat?.dispose();this.fogHiddenMat?.dispose();this.fogSeenMat=new T.MeshBasicMaterial({color:0x14241e,transparent:true,opacity:.13,depthWrite:false});this.fogHiddenMat=new T.MeshBasicMaterial({color:0x14241e,transparent:true,opacity:.34,depthWrite:false});this.makeBackdrop(s);
 
 
 s.tiles.forEach(t=>{if(t.terrain==='void')return;
@@ -582,6 +582,15 @@ events(){
  this.sync();
 }
 
+retireEffect(e){
+  e.el?.remove();if(!e.fx)return;
+  this.scene?.remove(e.fx);
+  e.fx.traverse(o=>{
+   if(!o.isMesh)return;
+   if(o.material&&!Array.isArray(o.material))o.material.dispose();
+   if(o.geometry&&o.geometry!==sphereGeo&&o.geometry!==boxGeo)o.geometry.dispose();
+  });
+ }
  // Impacts are decorative only. They never alter pathfinding, damage, or tile ownership.
  addImpactMark(ev){
   if(!ev.explosive||!this.state||!this.impactGroup)return null;
@@ -651,7 +660,7 @@ events(){
   const burst=this.motion?explosive?690:360:180;
   this.effects.push({...ev,kind:'shot',fx,tracer,blast,flame,core,ring,smoke,sparks,fromWorld:from,toWorld:to,wet,explosive,el,start:now,travel,burst,duration:travel+burst,impacted:false});
   // Limit the expensive simultaneous active particle systems during 4-battery shellstorms.
-  while(this.effects.length>54){const stale=this.effects.shift();stale.el?.remove();if(stale.fx)this.scene.remove(stale.fx);}
+  while(this.effects.length>54)this.retireEffect(this.effects.shift());
  }
  advanceMovement(now,s){
   this.animations=this.animations.filter(a=>{
@@ -681,7 +690,7 @@ events(){
   this.effects=this.effects.filter(e=>{
    const elapsed=now-e.start;
    if(elapsed>=e.duration){
-    e.el?.remove();if(e.fx)this.scene.remove(e.fx);return false;
+    this.retireEffect(e);return false;
    }
    if(e.kind==='dust'){
     const f=elapsed/e.duration;e.smoke.scale.setScalar(e.baseSize*(1+f*2));
@@ -729,7 +738,7 @@ events(){
  }
 project(x,y,z){let p=new T.Vector3(x,y,z).project(this.camera);return {x:(p.x+1)*this.w/2,y:(1-p.y)*this.h/2};}
 collectFaces(group){let faces=[],normal=new T.Vector3(),a=new T.Vector3(),b=new T.Vector3(),c=new T.Vector3(),light=new T.Vector3(-.4,1,.7).normalize(),matrix=new T.Matrix4();const vp=new T.Matrix4().multiplyMatrices(this.camera.projectionMatrix,this.camera.matrixWorldInverse);group.updateMatrixWorld(true);group.traverse(o=>{if(!o.isMesh||o.userData.sky)return;for(let p=o;p;p=p.parent)if(!p.visible)return;let geo=o.geometry,pos=geo.attributes.position,idx=geo.index,col=o.material.color;matrix.multiplyMatrices(vp,o.matrixWorld);let lastColor='',lastNormal=-2;for(let i=0;i<(idx?idx.count:pos.count);i+=3){let ia=idx?idx.getX(i):i,ib=idx?idx.getX(i+1):i+1,ic=idx?idx.getX(i+2):i+2;a.fromBufferAttribute(pos,ia).applyMatrix4(matrix);b.fromBufferAttribute(pos,ib).applyMatrix4(matrix);c.fromBufferAttribute(pos,ic).applyMatrix4(matrix);if((b.x-a.x)*(c.y-a.y)-(b.y-a.y)*(c.x-a.x)<=0)continue;normal.fromBufferAttribute(geo.attributes.normal,ia).transformDirection(o.matrixWorld);let shade=.72+Math.max(0,normal.dot(light))*.28;if(shade!==lastNormal){lastColor='#'+col.clone().multiplyScalar(shade).getHexString();lastNormal=shade;}faces.push({pts:[(a.x+1)*this.w/2,(1-a.y)*this.h/2,(b.x+1)*this.w/2,(1-b.y)*this.h/2,(c.x+1)*this.w/2,(1-c.y)*this.h/2],z:(a.z+b.z+c.z)/3,c:lastColor});}});return faces;}
-softwareDraw(){let ctx=this.ctx;ctx.fillStyle='#'+this.scene.background.getHexString();ctx.fillRect(0,0,this.w,this.h);if(!this.staticFaces){this.staticFaces=this.collectFaces(this.tileGroup);this.metrics.staticBuilds++;}let faces=this.staticFaces.concat(...(this.backdrop?this.collectFaces(this.backdrop):[]),this.collectFaces(this.unitGroup),this.collectFaces(this.markGroup),this.collectFaces(this.fogGroup));for(let e of this.effects)if(e.fx)faces.push(...this.collectFaces(e.fx));faces.sort((a,b)=>b.z-a.z);let color='';for(let f of faces){ctx.beginPath();ctx.moveTo(f.pts[0],f.pts[1]);ctx.lineTo(f.pts[2],f.pts[3]);ctx.lineTo(f.pts[4],f.pts[5]);ctx.closePath();if(color!==f.c){ctx.fillStyle=f.c;ctx.strokeStyle=f.c;color=f.c;}ctx.fill();ctx.lineWidth=.4;ctx.stroke();}}
+softwareDraw(){let ctx=this.ctx;ctx.fillStyle='#'+this.scene.background.getHexString();ctx.fillRect(0,0,this.w,this.h);if(!this.staticFaces){this.staticFaces=this.collectFaces(this.tileGroup);this.metrics.staticBuilds++;}let faces=this.staticFaces.concat(...(this.backdrop?this.collectFaces(this.backdrop):[]),this.collectFaces(this.unitGroup),this.collectFaces(this.markGroup),this.collectFaces(this.fogGroup),...(this.impactGroup?[this.collectFaces(this.impactGroup)]:[]));for(let e of this.effects)if(e.fx)faces.push(...this.collectFaces(e.fx));faces.sort((a,b)=>b.z-a.z);let color='';for(let f of faces){ctx.beginPath();ctx.moveTo(f.pts[0],f.pts[1]);ctx.lineTo(f.pts[2],f.pts[3]);ctx.lineTo(f.pts[4],f.pts[5]);ctx.closePath();if(color!==f.c){ctx.fillStyle=f.c;ctx.strokeStyle=f.c;color=f.c;}ctx.fill();ctx.lineWidth=.4;ctx.stroke();}}
 
 frame(t){requestAnimationFrame(tt=>this.frame(tt));if(document.hidden||!this.state){this.flightTick=0;return;}this.flightStep(t);if(this.cameraAnimating)this.cameraUpdate();let active=this.animations.length||this.effects.length||this.cameraAnimating,ambient=this.motion&&!this.software&&this.state.units.some(u=>u.hp>0&&['Air','Navy'].includes(A.D[u.type].branch));if(!this.dirty&&!active&&!ambient)return;if(t-this.last<(this.software?33:16))return;this.last=t;let began=performance.now();this.dirty=false;let s=this.state;this.advanceMovement(t,s);s.units.forEach(u=>{let g=this.groups.get(u.id),l=this.labelsMap.get(u.id);if(!g||!g.visible)return;if(this.motion&&A.D[u.type].branch==='Air'&&!u.landed&&!this.animations.some(a=>a.id===u.id))g.position.y=1.12+A.groundHeight(s,u.x,u.y)+Math.sin(t*.002+u.id)*.05;if(this.motion&&A.D[u.type].branch==='Navy'){
  g.position.y=.04+Math.sin(t*.0015+u.id)*.025;
