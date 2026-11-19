@@ -381,8 +381,9 @@ function batteryStrike(s){
    const p={x:z.x+dx,y:z.y+dy},t=tile(s,p.x,p.y);if(!t)continue;
    const victim=t.terrain==='void'?null:at(s,p.x,p.y);
    const amount=victim?Math.max(8,Math.round((dx===0&&dy===0?39:24)*(s.difficulty==='hard'?1.15:1))):0;
+   const before=victim?.hp;
    if(victim)hurt(s,victim,amount);
-   s.events.push({kind:'attack',from:{x:gun.x,y:gun.y},to:p,damage:amount,id:victim?.id});
+   s.events.push({kind:'attack',from:{x:gun.x,y:gun.y},to:p,damage:amount,id:victim?.id,sourceType:gun.type,targetType:victim?.type,explosive:true,destroyed:!!(before>0&&victim.hp===0)});
   }
  }
  s.warningZones=[];log(s,'MERIDIAN ARTILLERY: saturation strike landed!');
@@ -451,15 +452,16 @@ function attack(s,a,b){
  if(a.suppressTurn===s.turn){b.suppressedUntil=s.turn+(a.team===1?1:0);a.suppressTurn=null;}
  a.shotRound=s.turn;a.ammo[a.weapon||0]--;a.used[a.weapon||0]=true;a.fired=a.used.every((used,i)=>used||a.ammo[i]===0);
  a.moved=true;a.guard=false;a.evadeMove=a.harassTurn===s.turn?s.turn:null;a.harassTurn=null;a.xp+=initial>0&&b.hp===0?1:0;
- s.events.push({kind:'attack',from:{x:a.x,y:a.y},to:point,damage:n,id:b.id});
+ s.events.push({kind:'attack',from:{x:a.x,y:a.y},to:point,damage:n,id:b.id,sourceType:a.type,targetType:b.type,explosive:bombard||has(a,'splash')||has(a,'indirect')||D[a.type].branch==='Navy',destroyed:initial>0&&b.hp===0});
  if(bombard){
   let friendlies=0;
   for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){
    const impact={x:point.x+dx,y:point.y+dy},cell=tile(s,impact.x,impact.y);
    if(!cell)continue;
    const v=cell.terrain==='void'?null:at(s,impact.x,impact.y),dmg=v&&v.hp>0&&!v.carried?Math.max(5,Math.round(damage(s,a,v)*.65)):0;
-   if(v&&dmg){if(v.team===a.team)friendlies++;const prev=v.hp;hurt(s,v,dmg);if(prev>0&&v.hp===0&&v.team!==a.team)a.xp++;}
-   s.events.push({kind:'attack',from:{x:a.x,y:a.y},to:impact,damage:dmg,id:v?.id});
+   const before=v?.hp;
+   if(v&&dmg){if(v.team===a.team)friendlies++;hurt(s,v,dmg);if(before>0&&v.hp===0&&v.team!==a.team)a.xp++;}
+   s.events.push({kind:'attack',from:{x:a.x,y:a.y},to:impact,damage:dmg,id:v?.id,sourceType:a.type,targetType:v?.type,explosive:true,destroyed:!!(before>0&&v.hp===0)});
   }
   log(s,D[a.type].name+' fired FIVE-shell bombardment at '+D[b.type].name+'; '+(friendlies?'FRIENDLY FIRE '+friendlies+' vessel(s)/unit(s).':'impact pattern clear of allies.'));
  }else{
@@ -467,8 +469,8 @@ function attack(s,a,b){
   if(has(a,'splash'))s.units.filter(v=>v.id!==b.id&&v.hp>0&&!v.carried&&dist(v,b)===1).forEach(v=>hurt(s,v,Math.round(n*.3)));
  }
  if(b.hp>0&&canAttack(s,b,a,true)&&!has(b,'indirect')){
-  b.ammo[b.weapon||0]--;const reply=Math.round(damage(s,b,a)*.45);hurt(s,a,reply);
-  s.events.push({kind:'counter',from:{x:b.x,y:b.y},to:{x:a.x,y:a.y},damage:reply,id:a.id});
+  b.ammo[b.weapon||0]--;const reply=Math.round(damage(s,b,a)*.45),before=a.hp;hurt(s,a,reply);
+  s.events.push({kind:'counter',from:{x:b.x,y:b.y},to:{x:a.x,y:a.y},damage:reply,id:a.id,sourceType:b.type,targetType:a.type,explosive:has(b,'splash')||has(b,'indirect')||D[b.type].branch==='Navy',destroyed:before>0&&a.hp===0});
  }
  check(s);return true;
 }
