@@ -255,7 +255,7 @@ flightStep(now){
 focusPoint(x,y){
  if(!this.state)return;
  const worldX=x-this.state.w/2+.5,worldZ=y-this.state.h/2+.5;
- const targetHeight=A.groundHeight(this.state,x,y)+.45,height=Math.max(9.5,targetHeight+8),back=11.5;
+ const targetHeight=A.groundHeight(this.state,x,y)+.45,height=Math.max(10.5,targetHeight+10.8),back=8.0;
  // Preserve current heading while actually flying to a new position.
  this.eye.set(worldX-Math.sin(this.yaw)*back,height,worldZ-Math.cos(this.yaw)*back);
  this.clampEye();
@@ -649,7 +649,7 @@ events(){
   const distance=Math.hypot(ev.to.x-ev.from.x,ev.to.y-ev.from.y);
   const travel=this.motion?Math.min(490,Math.max(135,105+distance*23)):25;
   const burst=this.motion?explosive?690:360:180;
-  this.effects.push({...ev,kind:'shot',fx,tracer,blast,flame,core,ring,smoke,sparks,from,to,wet,explosive,el,start:now,travel,burst,duration:travel+burst,impacted:false});
+  this.effects.push({...ev,kind:'shot',fx,tracer,blast,flame,core,ring,smoke,sparks,fromWorld:from,toWorld:to,wet,explosive,el,start:now,travel,burst,duration:travel+burst,impacted:false});
   // Limit the expensive simultaneous active particle systems during 4-battery shellstorms.
   while(this.effects.length>54){const stale=this.effects.shift();stale.el?.remove();if(stale.fx)this.scene.remove(stale.fx);}
  }
@@ -691,7 +691,7 @@ events(){
    if(e.kind!=='shot')return true;
    if(elapsed<e.travel){
     const f=Math.max(0,Math.min(1,elapsed/Math.max(1,e.travel)));
-    const midpoint=e.from.clone().lerp(e.to,f);
+    const midpoint=e.fromWorld.clone().lerp(e.toWorld,f);
     midpoint.y+=Math.sin(Math.PI*f)*(e.explosive?1.1:0.26);
     e.tracer.position.copy(midpoint);
     e.tracer.visible=true;e.blast.visible=false;return true;
