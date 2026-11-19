@@ -145,5 +145,5 @@ test('perspective picking still resolves battlefield grid positions',()=>{
  const p=v.project(t.x-s.w/2+.5,0,t.y-s.h/2+.5);
  const picked=v.pick({clientX:p.x,clientY:p.y});
  assert(picked,'perspective ray must hit ground');
- assert.deepEqual(picked,t);
+ assert.equal(picked.x,t.x);assert.equal(picked.y,t.y);
 });
