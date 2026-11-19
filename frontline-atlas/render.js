@@ -77,17 +77,26 @@ function addToyProp(parent,s,t){
 }
 // A five-point tessellated slope: identical corner sampling keeps neighboring tiles continuous.
 function slopeGeometry(s,t){
- const center=A.groundHeight(s,t.x,t.y),corner=[[-.5,-.5],[.5,-.5],[.5,.5],[-.5,.5]],vertices=[],uvs=[];
- for(let i=0;i<4;i++){const p=corner[i],q=corner[(i+1)%4];
-  vertices.push(p[0],A.groundHeight(s,t.x+p[0],t.y+p[1])-center,p[1],
-   0,0,0,q[0],A.groundHeight(s,t.x+q[0],t.y+q[1])-center,q[1]);uvs.push(p[0]+.5,p[1]+.5,.5,.5,q[0]+.5,q[1]+.5);
- }
- const geo=new T.BufferGeometry();geo.setAttribute('position',new T.Float32BufferAttribute(vertices,3));geo.setAttribute('uv',new T.Float32BufferAttribute(uvs,2));geo.computeVertexNormals();return geo;
+ // Flat square plateau: two triangles, deliberately NOT a curved heightfield.
+ const v=[-.5,0,-.5,-.5,0,.5,.5,0,.5,-.5,0,-.5,.5,0,.5,.5,0,-.5];
+ const geo=new T.BufferGeometry();geo.setAttribute('position',new T.Float32BufferAttribute(v,3));
+ geo.setAttribute('uv',new T.Float32BufferAttribute([0,0,0,1,1,1,0,0,1,1,1,0],2));
+ geo.computeVertexNormals();return geo;
+}
+function rampGeometry(s,t,u){
+ const dx=u.x-t.x,dz=u.y-t.y,x=t.x-s.w/2+.5,z=t.y-s.h/2+.5;
+ const a=A.elevation(s,t)+.048,b=A.elevation(s,u)+.048,width=.33;
+ const p=dx?[x,z-width,x+dx,z-width,x+dx,z+width,x,z+width]:
+             [x-width,z,x-width,z+dz,x+width,z+dz,x+width,z];
+ const v=[p[0],a,p[1],p[2],b,p[3],p[4],b,p[5],p[0],a,p[1],p[4],b,p[5],p[6],a,p[7]];
+ const geo=new T.BufferGeometry();geo.setAttribute('position',new T.Float32BufferAttribute(v,3));
+ geo.setAttribute('uv',new T.Float32BufferAttribute([0,0,1,0,1,1,0,0,1,1,0,1],2));
+ geo.computeVertexNormals();return geo;
 }
 function highlandDetails(parent,s,t,x,z,n){
  const seed=(t.x*71+t.y*163+s.mission.seed)%19,h=A.elevation(s,t);
  if(['road','bridge'].includes(t.terrain)&&seed%5===0){for(let side of [-1,1]){box(parent,0xb0a78e,x+side*.44,.12,z+.25,.07,.22,.08);box(parent,0xdbd1ac,x+side*.44,.25,z+.25,.09,.035,.09);}}
- if(t.terrain==='mountain'&&seed%4===0){const r=crag(parent,h>4.2?0xa2b2b0:0x647b76,x+.1,.03,z-.08,.57,.39,.62,n%5);r.rotation.y=seed*.18;if(h>4.7)crag(parent,0xe1e8df,x-.16,.28,z-.12,.29,.13,.28,(n+2)%5);}
+ if(t.terrain==='mountain'&&seed%4===0){const r=crag(parent,h>2.55?0xa2b2b0:0x647b76,x+.1,.03,z-.08,.57,.39,.62,n%5);r.rotation.y=seed*.18;if(h>2.75)crag(parent,0xe1e8df,x-.16,.28,z-.12,.29,.13,.28,(n+2)%5);}
  if(t.terrain==='plain'&&seed%7===0)crag(parent,0x82918a,x+.22,.02,z-.22,.18,.12,.21,n%5);
 }
 
@@ -320,11 +329,12 @@ setState(s){this.staticFaces=null;this.dirty=true;this.animations=[];this.effect
 
 s.tiles.forEach(t=>{if(t.terrain==='void')return;
  const patch=new T.Group(),height=A.elevation(s,t);patch.position.y=height;patch.userData.tilePatch=t;this.tileGroup.add(patch);
- let x=t.x-s.w/2+.5,z=t.y-s.h/2+.5,n=(t.x*17+t.y*31)%13,c=t.terrain==='water'?0x397d8a:t.terrain==='road'||t.terrain==='bridge'?biome==='mountain'?0x858a82:0x626c69:biome==='toy'?TOY_FELT:biome==='mountain'?(height>4.9?0xc5d3cc:height>3.9?0x819a94:t.terrain==='forest'?0x557a68:0x688779):new T.Color(palette[1]).multiplyScalar(.99+(n%5)*.004).getHex();
+ let x=t.x-s.w/2+.5,z=t.y-s.h/2+.5,n=(t.x*17+t.y*31)%13,c=t.terrain==='water'?0x397d8a:t.terrain==='road'||t.terrain==='bridge'?biome==='mountain'?0x858a82:0x626c69:biome==='toy'?TOY_FELT:biome==='mountain'?(height>2.65?0xc5d3cc:height>1.85?0x819a94:t.terrain==='forest'?0x557a68:0x688779):new T.Color(palette[1]).multiplyScalar(.99+(n%5)*.004).getHex();
  let tile;
  if(biome==='mountain'){
-  box(patch,t.terrain==='mountain'?0x536963:0x54746a,x,-height*.5-.29,z,.994,height+.52,.994);
-  tile=mesh(patch,slopeGeometry(s,t),c,x,.012,z);tile.userData.terrainSurface=true;this.slopeSurfaces.push(tile);
+  // Square cliff columns reach below the cloud layer; road ramps are separate triangular meshes.
+  box(patch,t.terrain==='mountain'?0x546966:0x607a72,x,-(height+3.15)*.5-.03,z,.997,height+3.15,.997);
+  tile=mesh(patch,slopeGeometry(s,t),c,x,.018,z);tile.userData.terrainSurface=true;this.slopeSurfaces.push(tile);
  }else tile=box(patch,c,x,-.25,z,1,.5,1);
  tile.userData.tile=t;if(biome!=='toy'){tile.material=terrainMaterial(c,t.terrain==='water'?'water':['road','bridge'].includes(t.terrain)?'road':biome);}
 if(t.pad){box(patch,0x344e59,x,.025,z,.82,.035,.82);for(let i=-2;i<=2;i++)box(patch,0xc7ba86,x+i*.13,.049,z,.05,.01,.65);}
@@ -372,7 +382,21 @@ else if(t.facility==='hq'){bevel(g,0xaab1a0,0,.27,0,.77,.44,.63);box(g,col,0,.51
 else if(t.facility==='factory'){box(g,0xa6ab99,0,.25,0,.73,.43,.6);box(g,col,0,.49,0,.8,.08,.68);box(g,0x354a4e,0,.22,.31,.4,.3,.02);cylinder(g,0x596963,.26,.65,-.19,.065,.75);for(let i=0;i<3;i++)box(g,0x849b91,-.22+i*.2,.4,.315,.1,.07,.01);}
 else{box(g,0xc6bea4,-.12,.24,0,.48,.42,.5);let roof=cone(g,0x786d59,-.12,.55,0,.38,.25);roof.rotation.y=Math.PI/4;box(g,0x49666b,-.23,.28,.26,.1,.12,.02);box(g,0x63756c,-.04,.17,.26,.1,.26,.02);box(g,0xa3a58d,.28,.15,-.12,.24,.25,.25);}
 rod(g,0xc0baa3,[.39,0,.3],[.39,.95,.3],.012);let flag=box(g,col,.49,.84,.3,.2,.13,.012);g.userData.flag=flag;}
-});this.batchTerrain();this.cameraUpdate();this.sync();}
+});
+ if(biome==='mountain'){
+  for(const t of s.tiles){
+   if(t.terrain!=='road'&&t.terrain!=='bridge')continue;
+   for(const [dx,dy] of [[1,0],[0,1]]){
+    const next=A.tile(s,t.x+dx,t.y+dy);
+    if(!next||!['road','bridge'].includes(next.terrain))continue;
+    if(Math.abs(A.elevation(s,t)-A.elevation(s,next))<.2)continue;
+    const ramp=new T.Mesh(rampGeometry(s,t,next),terrainMaterial(0xaaa58e,'road'));
+    ramp.userData.roadRamp=true;ramp.receiveShadow=true;ramp.material.side=T.DoubleSide;
+    this.tileGroup.add(ramp);
+   }
+  }
+ }
+ this.batchTerrain();this.cameraUpdate();this.sync();}
 makeToyRoom(s){
  const g=this.backdrop,W=s.w/2,H=s.h/2,zBack=-H-8,xRight=W+8;
  const pine=0x765943,plaster=0xb3a089,trim=0x5b4639,cloth=TOY_FELT;
@@ -492,7 +516,7 @@ makeHarbor(s){
 makeBackdrop(s){const b=s.mission.biome,seed=s.mission.seed||1,isToy=b==='toy',snow=b==='snow',high=b==='mountain',urban=b==='urban',desert=b==='desert';
  const land=(b==='coast'||b==='islands')?0x397d8a:(this.groundColor||TOY_FELT);
  // A real terrain-colored world beneath the board prevents the sky from appearing as the floor.
- const floor=box(this.backdrop,land,0,-.255,0,125,.5,115);if(!isToy)floor.material=terrainMaterial(land,(b==='coast'||b==='islands')?'water':b);if(isToy){this.makeToyRoom(s);return;}skyDome(this.backdrop,s);if(b==='mountain')this.makeAlpineSurround(s);if(b==='coast'||b==='islands')this.makeHarbor(s);
+ const floor=box(this.backdrop,b==='mountain'?0x7895a9:land,0,b==='mountain'?-3.255:-.255,0,125,.5,115);if(!isToy)floor.material=terrainMaterial(land,(b==='coast'||b==='islands')?'water':b);if(isToy){this.makeToyRoom(s);return;}skyDome(this.backdrop,s);if(b==='mountain')this.makeAlpineSurround(s);if(b==='coast'||b==='islands')this.makeHarbor(s);
  for(let i=0;i<55;i++){const a=i/55*Math.PI*2,range=18+(i%6)*2.4,x=Math.cos(a)*range,z=Math.sin(a)*range;
   if(high||snow||desert)crag(this.backdrop,high?0x627c78:snow?0xb4c5c8:0xbda17c,x,-.49,z,1.5+(i%4),.35+(i%5)*.17,1.4+(i%3),i%5);
   else if((b==='coast'||b==='islands')&&i%4===0){crag(this.backdrop,0x689486,x,-.23,z,2.4+(i%3),.48+(i%2)*.32,2.8,i%5);if(i%3===0)pine(this.backdrop,x+.25,z-.2,i,false);}
@@ -500,7 +524,7 @@ makeBackdrop(s){const b=s.mission.biome,seed=s.mission.seed||1,isToy=b==='toy',s
   else if(urban&&i%4===0)box(this.backdrop,0x495760,x,.25,z,1.8,1.1,2.3);
  }
  for(let i=0;i<38;i++){const angle=i/38*Math.PI*2,dist=27+(i%6)*1.9,x=Math.cos(angle)*dist,z=Math.sin(angle)*dist,r=(Math.sin(i*2.7+seed*.2)+1)*.5;if(isToy){const q=box(this.backdrop,i%3===0?0x846e5a:0x9e856a,x,3.1,z,2.5,6,2.3);q.rotation.y=angle+.15;if(i%6===0)box(this.backdrop,0xb39c75,x,6.3,z,2.7,.3,2.5);}else if(urban){box(this.backdrop,[0x5a6870,0x788996,0x677c85][i%3],x,1.5+r*2,z,1.2+r*1.5,3+r*4,1.1+r*.9);}else if(high||snow){const peak=crag(this.backdrop,snow?0xdde6e8:i%3===0?0xa5b5bc:0x637d80,x,-.35,z,4+r*1.4,5+r*3,4+r*1.4,i%5);peak.rotation.y=i*.3;}else if(!desert){for(let k=0;k<2;k++)cone(this.backdrop,0x294c49,x+k*.9,1.2,z+.3*k,.9,2.5+r*2);}else{const dune=box(this.backdrop,0xd0b58a,x,.25,z,3,.5+r,2.6);dune.rotation.y=i*.3;}}if(high||snow||b==='coast'||b==='islands'){for(let i=0;i<11;i++){const x=(i-5)*5;const peak=crag(this.backdrop,high?0x768a9e:snow?0xe3e9ee:0x638b93,x,-.34,-31,6,8+(i%4)*2,4.5,i%5);peak.rotation.y=i*.3;}}const storm=(s.mission.n%5===3),snowfall=b==='snow'&&s.mission.n%2===0;for(let i=0;i<(storm?23:11);i++){let angle=i/23*Math.PI*2,dist=25+(i%4)*2,x=Math.cos(angle)*dist,z=Math.sin(angle)*dist,y=8+(i%4)*.7;ball(this.backdrop,storm?0x657983:0xe2e5e0,x,y,z,2.1,.42,1.3);ball(this.backdrop,storm?0x4a5f6a:0xf1eee1,x+.9,y+.14,z+.3,1.3,.51,1.1);}if(storm||snowfall){for(let i=0;i<76;i++){let x=Math.sin(i*12.98+seed)*s.w*.48,z=Math.cos(i*9.13+seed)*s.h*.48,y=1.9+(i%11)*.27;if(snowfall)ball(this.backdrop,0xffffff,x,y,z,.035,.035,.035);else rod(this.backdrop,0xa4b8be,[x,y,z],[x-.12,y-.35,z+.09],.009);}}}
-batchTerrain(){if(!this.renderer)return;this.tileGroup.updateMatrixWorld(true);let buckets=new Map(),remove=[];this.tileGroup.traverse(o=>{if(!o.isMesh||o.userData.terrainSurface||o.parent.userData.facility)return;let key=o.geometry.uuid+o.material.uuid;if(!buckets.has(key))buckets.set(key,[]);buckets.get(key).push(o);remove.push(o);});for(let meshes of buckets.values()){let first=meshes[0],batch=new T.InstancedMesh(first.geometry,first.material,meshes.length);meshes.forEach((m,i)=>batch.setMatrixAt(i,m.matrixWorld));batch.castShadow=true;batch.receiveShadow=true;batch.instanceMatrix.needsUpdate=true;this.tileGroup.add(batch);}remove.forEach(o=>o.parent.remove(o));}
+batchTerrain(){if(!this.renderer)return;this.tileGroup.updateMatrixWorld(true);let buckets=new Map(),remove=[];this.tileGroup.traverse(o=>{if(!o.isMesh||o.userData.terrainSurface||o.userData.roadRamp||o.parent.userData.facility)return;let key=o.geometry.uuid+o.material.uuid;if(!buckets.has(key))buckets.set(key,[]);buckets.get(key).push(o);remove.push(o);});for(let meshes of buckets.values()){let first=meshes[0],batch=new T.InstancedMesh(first.geometry,first.material,meshes.length);meshes.forEach((m,i)=>batch.setMatrixAt(i,m.matrixWorld));batch.castShadow=true;batch.receiveShadow=true;batch.instanceMatrix.needsUpdate=true;this.tileGroup.add(batch);}remove.forEach(o=>o.parent.remove(o));}
 sync(){this.dirty=true;let s=this.state;const present=new Set(s.units.map(u=>u.id));for(const [id,g]of this.groups)if(!present.has(id)){this.unitGroup.remove(g);this.groups.delete(id);this.labelsMap.get(id)?.remove();this.labelsMap.delete(id);}this.clear(this.fogGroup);s.seen=s.seen||[];for(let t of s.tiles){if(t.terrain==='void')continue;const index=t.y*s.w+t.x;if(A.tileVisible(s,t)||t.pad)s.seen[index]=true;else{const seen=!!s.seen[index],shade=this.software?new T.Color(this.groundColor||TOY_FELT).multiplyScalar(seen?.82:.65).getHex():0x26372d;const overlay=box(this.fogGroup,shade,t.x-s.w/2+.5,A.elevation(s,t)+.075,t.y-s.h/2+.5,.998,.018,.998);if(!this.software)overlay.material=seen?this.fogSeenMat:this.fogHiddenMat;}}s.units.forEach(u=>{if(u.hp<=0||u.carried||!A.visible(s,u)){let g=this.groups.get(u.id);if(g)g.visible=false;let l=this.labelsMap.get(u.id);if(l)l.style.display='none';return;}let g=this.groups.get(u.id);if(!g){g=model(u.type,u.team);g.userData.unitId=u.id;if(A.D[u.type].branch==='Navy'){
   const wake=new T.Group();wake.userData.wake=true;g.add(wake);g.userData.wake=wake;
   for(let k=0;k<3;k++)for(let side of [-1,1]){
