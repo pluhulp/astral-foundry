@@ -10,28 +10,33 @@ function renderState(s){
  v.scene.background=new T.Color(0x8ba9b4);v.setState(s);v.cameraUpdate(true);
  return v;
 }
-test('mountain theaters are actual varied mountainsides with five meter-high ridges and drivable sloped roads',()=>{
+test('mountain theaters use restrained stepped square elevation and angular road ramps',()=>{
  const maps=A.missions.filter(m=>m.biome==='mountain');assert.equal(maps.length,10);
  for(const m of maps){
   const s=A.make(m),heights=s.tiles.filter(t=>t.terrain!=='void').map(t=>A.elevation(s,t));
-  assert(Math.max(...heights)-Math.min(...heights)>=3.6,m.name+' should be a genuine mountain valley');
+  assert(Math.max(...heights)-Math.min(...heights)>=1.80,m.name+' needs distinct mountain terraces');
+   assert(Math.max(...heights)-Math.min(...heights)<=2.60,m.name+' must avoid excessive height variation');
+   assert(new Set(heights.map(x=>x.toFixed(3))).size<=5,'terraces must be a few clear height tiers');
   const mid=Math.floor(s.h/2);
   const road=s.tiles.filter(t=>t.y===mid&&['road','bridge'].includes(t.terrain));
-  assert(road.length>12);assert(Math.max(...road.map(t=>t.elevation))-Math.min(...road.map(t=>t.elevation))>=2.0);
+  assert(road.length>12);assert(Math.max(...road.map(t=>A.elevation(s,t)))-Math.min(...road.map(t=>A.elevation(s,t)))>=1.20);
   assert(road.every(t=>Number.isFinite(t.elevation)));
  }
 });
-test('mountain height is a continuous function; adjacent quadrants share exact slope corner positions',()=>{
+test('alpine tops remain flat square facets rather than smoothed continuous hills',()=>{
  const s=A.make(A.missions[70]),v=renderState(s),slope=v.slopeSurfaces;
  assert(slope.length>100,'must build real topographic surface meshes');
  const left=A.tile(s,8,9),right=A.tile(s,9,9);
  const shared=A.groundHeight(s,8.5,8.5);
  assert(Math.abs(shared-A.groundHeight(s,8.5,8.5))<1e-9);
  for(const mesh of slope.slice(0,12)){
-  assert.equal(mesh.geometry.attributes.position.count,12);
+  assert.equal(mesh.geometry.attributes.position.count,6);assert([...mesh.geometry.attributes.position.array].filter((_,i)=>i%3===1).every(y=>Math.abs(y)<.001),'each square tile has a level top');
   for(const n of mesh.geometry.attributes.normal.array)assert(Number.isFinite(n));
  }
  const tile=right;assert(slope.some(x=>x.userData.tile===tile));
+ const ramps=v.tileGroup.children.filter(o=>o.userData.roadRamp);
+ assert(ramps.length>=1,'each alpine road must have visible angular elevation connectors');
+ assert(ramps.every(o=>o.geometry.attributes.position.count===6),'road connectors are simple triangle-pair ramps');
 });
 test('mountain camera selects an actual elevated tile, not a fake sea-level plane',()=>{
  const s=A.make(A.missions[70]),v=renderState(s);
@@ -42,6 +47,13 @@ test('mountain camera selects an actual elevated tile, not a fake sea-level plan
  const hit=v.pick({clientX:p.x,clientY:p.y});
  assert(hit,'ray must hit the actual physical alpine surface');
  assert.equal(hit.x,tile.x);assert.equal(hit.y,tile.y);
+});
+test('small hills on nonmountain maps are gentle raised square features, not huge curved slopes',()=>{
+ const s=A.make(A.missions[0]),hill=s.tiles.find(t=>t.terrain==='hill');
+ assert(hill,'there should be at least one hill in the grass theater');
+ assert.equal(A.groundHeight(s,hill.x,hill.y),.22);
+ const nonhill=s.tiles.find(t=>t.terrain==='plain');
+ assert(nonhill&&A.groundHeight(s,nonhill.x,nonhill.y)===0);
 });
 test('slopes cost uphill infantry and armor movement but never slow air and ships',()=>{
  const s=A.make(A.missions[70]),road=s.tiles.find(t=>t.terrain==='road'&&t.x>3&&t.x<s.w-4);
