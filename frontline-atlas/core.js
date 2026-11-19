@@ -319,18 +319,25 @@ function initializeSpecial(s){
 function batteryWarnings(s){
  if(s.mission.type!=='battery')return;
  const guns=alive(s,1).filter(u=>u.battery);
- const targets=alive(s,0).filter(u=>!u.carried&&(!u.courier||!u.protected));
+ // Precision only for targets the Meridian team can actually see.
+ const targets=alive(s,0).filter(u=>!u.carried&&(!u.courier||!u.protected)&&visibleTo(s,u,1));
  s.warningZones=[];
  for(let i=0;i<guns.length;i++){
-  if(!targets.length)break;
-  const rank=targets.slice().sort((a,b)=>{
-    const score=v=>(v.courier?100:0)+(D[v.type].branch==='Armor'?20:0)+alive(s,0).filter(k=>dist(k,v)===1).length*24;
+  let x,y;
+  if(targets.length){
+   const rank=targets.slice().sort((a,b)=>{
+    const score=v=>(v.courier?100:0)+(D[v.type].branch==='Armor'?20:0)+targets.filter(k=>dist(k,v)===1).length*24;
     return score(b)-score(a)||a.id-b.id;
-  });
-  const target=rank[(i+s.turn)%rank.length];
-  s.warningZones.push({batteryId:guns[i].id,x:target.x,y:target.y,turn:s.turn+1});
+   });
+   const target=rank[(i+s.turn)%rank.length];x=target.x;y=target.y;
+  }else{
+   // Scheduled area-denial fire on public road approaches, NOT tracking hidden units.
+   x=Math.max(4,Math.min(s.w-7,4+(s.turn*2+i*5)%Math.max(8,s.w-11)));
+   y=Math.max(3,Math.min(s.h-4,Math.floor(s.h/2)+[-4,-1,2,4][i%4]));
+  }
+  s.warningZones.push({batteryId:guns[i].id,x,y,turn:s.turn+1,spotted:targets.length>0});
  }
- if(s.warningZones.length)log(s,s.warningZones.length+' enemy batteries acquiring targets — move out of the RED STRIKE ZONES!');
+ if(s.warningZones.length)log(s,s.warningZones.length+' enemy batteries acquiring '+(targets.length?'VISIBLE targets':'road approaches')+' — move out of the RED STRIKE ZONES!');
 }
 function batteryStrike(s){
  if(s.mission.type!=='battery'||!s.warningZones?.length)return;
