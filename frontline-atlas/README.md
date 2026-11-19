@@ -1,3 +1,36 @@
+# Frontline Atlas v9.4 — Command and Special Operations
+
+## The new battlefield director
+The Meridian AI now operates from a fog-of-war-respecting **shared intelligence board**: sightings persist briefly, advanced scouts and sonar gather contacts before main attacks, ships prioritize naval threats and screening actions, support vessels triage repairs and aircraft, and multiple weapons coordinate around high-value and wounded targets. Tactical positioning evaluates reachable squares using firepower, expected incoming damage, cover, movement cost, objective opportunities, standoff range, allied screening and supported flanks. These are decisions, not flat HP/damage multipliers. The enemy turns use one planned action per unit rather than repeatedly calling the entire AI for each gun.
+
+## Set-piece operations
+28 campaign missions are now special operations. **Every mission** in the campaign grid has a briefing subtitle, with special missions called out visually.
+
+- **Kill the Batteries** — four enemy long-range siege launchers acquire units, telegraph a five-cell cross in red, and fire heavy bombardments on the following enemy phase. Destroy each launcher to silence it.
+- **Counterbattery / Reverse Siege** — four stationary five-shell batteries on your side, a 40-supply starting pool, and five escalating enemy assault waves. Keep two batteries alive through round 15.
+- **Convoy Under Fire** — six starting pads in a straight line and 40 initial supply. A protected vehicle moves automatically along the road while your initial escort force handles ambushes. **No reinforcements after launch.** Clear the route and prevent the vehicle's destruction.
+- **Fortified Breakthrough** — breach three protected strongpoints with entrenched defensive screens and approaching enemy reinforcements.
+- **Naval Interception** — prevent an enemy flagship and its escorts from escaping the map while contesting sea lanes.
+- Existing hold, elimination, escort, capture, strike and defense missions remain playable. Custom skirmish can select special operation objectives.
+
+## More engaging pacing
+Two enemy takedowns in one player turn grant +1 supply, capped at +2 per turn; creating tactical momentum is more rewarding than waiting passively. Emplacements are anchored in place but retain their gun actions. Predictive red artillery warning tiles create counterplay rather than invisible unavoidable damage.
+
+## Camera and controls
+Default **Tactical** layout:
+- **Left-drag** pans the map with actual pixel/world calibration; a short drag moves a handful of tiles.
+- **Right-drag** or **Shift-drag** orbits the diorama.
+- **Mouse wheel** zooms toward the cursor.
+- WASD screen-relative pan, Q/E rotate by 45°, F centers selected unit (or resets), and the existing reset/in/out buttons work.
+- **Settings → Camera controls** offers **Classic** layout if you prefer left-drag orbit.
+
+Save format and player progress remain v3 compatible. Mission data derives its behavior from the mission's type, not a new save schema. Operator mode retains full testing access, and the separate space game is unchanged.
+
+### Verification
+Run `node --test *.test.cjs` under `frontline-atlas/`. AI, special objective and camera regression coverage is in `director.test.cjs` and `operations.test.cjs`.
+
+---
+
 # Frontline Atlas v9.3 — Naval Warfare: Bluewater Overhaul
 
 ## Warships are now a fleet, not floating tanks

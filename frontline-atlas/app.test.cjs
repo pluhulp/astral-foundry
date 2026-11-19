@@ -5,7 +5,7 @@ function harness(A,source,initial={}){
  const nodes=new Map(),listeners={},data=new Map(Object.entries(initial));
  const node=id=>{if(!nodes.has(id))nodes.set(id,{hidden:false,innerHTML:'',textContent:'',value:'',style:{},classList:{add(){},remove(){}},focus(){},click(){}});return nodes.get(id);};
  const document={getElementById:node,addEventListener:(name,fn)=>listeners[name]=fn,createElement:()=>({click(){}})};
- class View{constructor(){this.angle=-.55;this.zoom=1;this.pan={};View.instance=this;}setState(s){this.state=s;}resize(){}mark(){}sync(){}events(){this.state.events=[];}cameraUpdate(){}}
+ class View{constructor(){this.angle=-.55;this.zoom=1;this.pan={};View.instance=this;}setState(s){this.state=s;}resize(){}mark(){}sync(){}events(){this.state.events=[];}cameraUpdate(){}panByPixels(dx,dy){this.panLog=[dx,dy];}centerOn(x,y){this.focus=[x,y];}}
  const storage={getItem:k=>data.get(k)||null,setItem:(k,v)=>data.set(k,v)};
  new Function('Atlas','document','window','localStorage','matchMedia','AtlasView','setTimeout','clearTimeout',source)(A,document,{scrollTo(){}},storage,()=>({matches:false}),View,()=>0,()=>{});
  const click=(action,id)=>listeners.click({target:{closest:()=>({dataset:{do:action,id:id===undefined?undefined:String(id)},disabled:false})}});
@@ -78,4 +78,39 @@ test('five-shell barrage HUD exposes armed state and friendly-fire risk without 
  assert(h.node('unit-panel').innerHTML.includes('5-SHELL VOLLEY ARMED'));
  h.view().onClick(b,{shiftKey:true});
  assert(h.node('unit-panel').innerHTML.includes('FRIENDLY FIRE'));
+});
+
+test('campaign previews describe every mission and visually distinguish specials',()=>{
+ const h=harness(A,source);h.click('campaign');
+ assert(h.node('screen-content').innerHTML.includes('mission-brief'));
+ assert(h.node('screen-content').innerHTML.includes('special-operation'));
+ assert(h.node('screen-content').innerHTML.includes('WAVE DEFENSE'));
+ h.click('mission',0);
+ assert(h.node('screen-content').innerHTML.includes('FRONTLINE ASSAULT'));
+});
+test('camera settings toggle strategy dragging versus legacy orbit without touching progression',()=>{
+ const h=harness(A,source);h.click('settings');
+ assert(h.node('screen-content').innerHTML.includes('Camera controls'));
+ h.change('cameraLayout','classic');
+ assert.equal(h.saved().profile.settings.cameraLayout,'classic');
+ h.click('mission',0);h.click('deploy');
+ assert.equal(h.view().controls,'classic');
+ h.key({key:'d'});assert.deepEqual(h.view().panLog,[95,0]);
+ h.key({key:'q'});assert(h.view().angle<-.55);
+});
+test('artillery alert and momentum both appear in battle HUD',()=>{
+ const h=setup(),s=h.view().state;
+ s.warningZones=[{x:10,y:10,batteryId:123}];s.momentumRewards=1;
+ h.click('hq');h.view().onClick(s.pads[0]);
+ assert(h.node('battle-stats').textContent.includes('MOMENTUM'));
+});
+
+test('40-supply escort and reverse artillery battles survive browser save reloads',()=>{
+ for(const kind of ['escort','counterbattery']){
+  const m=A.missions.find(m=>m.type===kind),profile=A.freshProfile(),battle=A.make(m);
+  const h=harness(A,source,{'frontline-atlas-v3':JSON.stringify({profile,battle})});
+  assert(h.node('screen-content').innerHTML.includes('Resume operation'),kind+' archived a valid save');
+  h.click('resume');assert.equal(h.view().state.credits,40);
+  assert.equal(h.view().state.mission.type,kind);
+ }
 });

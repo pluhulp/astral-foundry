@@ -71,3 +71,19 @@
 /* v9.3: clear but compact cues for area-fire hazards */
 .unit-panel .status-chips .danger-chip{background:#583a31;border-color:#c98766;color:#f4d3b6;font-weight:700;letter-spacing:.03em}
 .unit-panel .fire-preview span{line-height:1.55}
+
+
+/* v9.4 — readable operation briefing & high-stakes battlefield alerts */
+.mission{min-height:235px;gap:9px;position:relative;overflow:hidden;padding:17px 14px}
+.mission .mission-brief{color:#dedfd1;font-size:10px;line-height:1.55;letter-spacing:.005em;text-transform:none;font-family:inherit;max-width:100%}
+.mission .mission-goal{color:#a8d0bd;font-size:9px;line-height:1.5;max-width:100%;margin-top:2px}
+.mission.special-operation{border:1px solid #d2a16a99;background:linear-gradient(155deg,#554533,var(--terrain),#17262b);box-shadow:inset 0 2px #f0b76a6b}
+.mission.special-operation:before{content:'SPECIAL OP';position:absolute;right:8px;top:8px;font:8px monospace;letter-spacing:1px;color:#f2c997;border:1px solid #e6af795c;padding:3px 5px;border-radius:3px;background:#243238cc}
+.mission.special-operation b{color:#f6e6d1}
+.mission .mission-brief{min-height:45px}
+.mission:disabled .mission-brief{opacity:.8}
+.objective{border:1px solid #78a59c66;border-left:3px solid #87c1a4;max-width:min(470px,calc(100vw - 40px));line-height:1.45;white-space:normal;background:#13282de8;box-shadow:0 8px 20px #0005}
+#battle-hint{font-size:11px!important;max-width:90vw;white-space:normal}
+.camera-controls button{min-width:38px;min-height:36px}
+.status-chips .danger-chip{color:#ffbfab!important;background:#63352c!important;border-color:#df886b!important}
+@media(max-width:880px){.mission-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.mission{min-height:200px}.mission .mission-brief{min-height:0}}
