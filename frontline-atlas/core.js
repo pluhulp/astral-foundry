@@ -345,8 +345,8 @@ function batteryStrike(s){
   const gun=s.units.find(v=>v.id===z.batteryId&&v.hp>0);if(!gun)continue;
   const impact=[[0,0],[1,0],[-1,0],[0,1],[0,-1]];
   for(const [dx,dy] of impact){
-   const p={x:z.x+dx,y:z.y+dy},t=tile(s,p.x,p.y);if(!t||t.terrain==='void')continue;
-   const victim=at(s,p.x,p.y);
+   const p={x:z.x+dx,y:z.y+dy},t=tile(s,p.x,p.y);if(!t)continue;
+   const victim=t.terrain==='void'?null:at(s,p.x,p.y);
    const amount=victim?Math.max(8,Math.round((dx===0&&dy===0?39:24)*(s.difficulty==='hard'?1.15:1))):0;
    if(victim)hurt(s,victim,amount);
    s.events.push({kind:'attack',from:{x:gun.x,y:gun.y},to:p,damage:amount,id:victim?.id});
@@ -415,8 +415,8 @@ function attack(s,a,b){
   let friendlies=0;
   for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){
    const impact={x:point.x+dx,y:point.y+dy},cell=tile(s,impact.x,impact.y);
-   if(!cell||cell.terrain==='void')continue;
-   const v=at(s,impact.x,impact.y),dmg=v&&v.hp>0&&!v.carried?Math.max(5,Math.round(damage(s,a,v)*.65)):0;
+   if(!cell)continue;
+   const v=cell.terrain==='void'?null:at(s,impact.x,impact.y),dmg=v&&v.hp>0&&!v.carried?Math.max(5,Math.round(damage(s,a,v)*.65)):0;
    if(v&&dmg){if(v.team===a.team)friendlies++;const prev=v.hp;hurt(s,v,dmg);if(prev>0&&v.hp===0&&v.team!==a.team)a.xp++;}
    s.events.push({kind:'attack',from:{x:a.x,y:a.y},to:impact,damage:dmg,id:v?.id});
   }
