@@ -210,7 +210,7 @@ const missions=chapters.flatMap((c,ch)=>c.names.map((name,n)=>{
 const has=(u,t)=>D[u.type].traits.includes(t),dist=(a,b)=>Math.abs(a.x-b.x)+Math.abs(a.y-b.y);
 // Shared continuous alpine heightfield: actual ground, tactical units and ray picks agree.
 function groundHeight(s,x,y){
- if(s.mission.biome!=='mountain')return 0;
+ if(s?.mission?.biome!=='mountain')return 0;
  const seed=s.mission.seed||1807,u=x/Math.max(1,s.w-1),v=y/Math.max(1,s.h-1);
  const ascent=3.3*Math.pow(Math.max(0,u),1.18);
  const ridge=1.05*Math.sin(u*7.2+seed*.013)+.76*Math.cos(v*8.1+seed*.019)+.47*Math.sin((u*4.7+v*5.2)+seed*.007);
