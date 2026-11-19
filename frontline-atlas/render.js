@@ -174,7 +174,7 @@ clampEye(){
  if(!this.eye)return;
  const limX=(this.state?.w||26)*1.65,limZ=(this.state?.h||22)*1.9;
  this.eye.x=Math.max(-limX,Math.min(limX,this.eye.x));
- this.eye.y=Math.max(1.35,Math.min(85,this.eye.y));
+ const tileX=this.eye.x+(this.state?.w||26)/2-.5,tileY=this.eye.z+(this.state?.h||22)/2-.5;const floor=this.state?A.groundHeight(this.state,tileX,tileY):0;this.eye.y=Math.max(floor+1.35,Math.min(85,this.eye.y));
  this.eye.z=Math.max(-limZ,Math.min(limZ,this.eye.z));
 }
 fly(forward=0,right=0,up=0,amount=1){
@@ -225,12 +225,12 @@ flightStep(now){
 focusPoint(x,y){
  if(!this.state)return;
  const worldX=x-this.state.w/2+.5,worldZ=y-this.state.h/2+.5;
- const height=9.5,back=11.5;
+ const targetHeight=A.groundHeight(this.state,x,y)+.45,height=Math.max(9.5,targetHeight+8),back=11.5;
  // Preserve current heading while actually flying to a new position.
  this.eye.set(worldX-Math.sin(this.yaw)*back,height,worldZ-Math.cos(this.yaw)*back);
  this.clampEye();
  const dx=worldX-this.eye.x,dz=worldZ-this.eye.z;
- this.yaw=Math.atan2(dx,dz);this.pitch=Math.atan2(.45-this.eye.y,Math.hypot(dx,dz));
+ this.yaw=Math.atan2(dx,dz);this.pitch=Math.atan2(targetHeight-this.eye.y,Math.hypot(dx,dz));
  this.cameraUpdate();
 }
 centerOn(x,y){this.focusPoint(x,y);}
