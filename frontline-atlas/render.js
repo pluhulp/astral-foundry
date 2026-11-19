@@ -18,6 +18,27 @@ function crag(g,c,x,y,z,sx,sy,sz,variant=0){return mesh(g,cragGeometries[variant
 const pineGeo=new T.CylinderGeometry(.09,.29,.43,6);
 function pine(g,x,z,n,snow){const h=.64+(n%4)*.12;rod(g,0x765f4c,[x,0,z],[x,h*.86,z],.036);for(let k=0;k<3;k++){let r=mesh(g,pineGeo,snow?k===2?0xe9ece6:0x315c57:[0x244e42,0x326451,0x407260][k],x,h*.28+k*h*.22,z,(.95-k*.17),(.9-k*.10),(.95-k*.17));r.rotation.y=n*.35;}if(n%4===0)ball(g,0x72987b,x+.2,.08,z-.23,.13,.08,.10);}
 
+const terrainTextures=new Map(),terrainSurfaceMaterials=new Map();
+// Tiny deterministic diffuse materials: no external images, downloads or GPU-heavy shaders.
+function terrainTexture(kind){
+ if(terrainTextures.has(kind))return terrainTextures.get(kind);
+ const n=32,data=new Uint8Array(n*n*4),water=kind==='water';
+ const hash=(x,y)=>{let h=Math.imul(x+19,374761393)^Math.imul(y+31,668265263);h=Math.imul(h^(h>>>13),1274126177);return ((h^(h>>>16))>>>0)/4294967295;};
+ for(let y=0;y<n;y++)for(let x=0;x<n;x++){
+  const i=(y*n+x)*4,grain=(hash(x,y)-.5)*2;
+  const stripe=water?Math.sin(y*.83+x*.18)*6:kind==='desert'?Math.sin(x*.30+y*.17)*5:0;
+  const delta=grain*(water?6:kind==='road'?7:12)+stripe;
+  const r=Math.max(0,Math.min(255,235+delta));
+  data[i]=r;data[i+1]=Math.max(0,Math.min(255,238+delta));data[i+2]=Math.max(0,Math.min(255,232+delta));data[i+3]=255;
+ }
+ const tex=new T.DataTexture(data,n,n,T.RGBAFormat);tex.wrapS=tex.wrapT=T.RepeatWrapping;tex.magFilter=T.LinearFilter;tex.minFilter=T.LinearMipmapLinearFilter;
+ tex.generateMipmaps=true;tex.needsUpdate=true;tex.colorSpace=T.SRGBColorSpace;terrainTextures.set(kind,tex);return tex;
+}
+function terrainMaterial(hex,kind){
+ const key=hex+'-'+kind;if(terrainSurfaceMaterials.has(key))return terrainSurfaceMaterials.get(key);
+ const m=new T.MeshStandardMaterial({color:hex,map:terrainTexture(kind),roughness:.98,metalness:0});
+ terrainSurfaceMaterials.set(key,m);return m;
+}
 const TOY_FELT=0x52675d;
 const TOY_PALETTE=[0xa88e6d,0x769d9b,0xd7b779,0xc87864,0x556c71];
 function addToyProp(parent,s,t){
@@ -56,12 +77,12 @@ function addToyProp(parent,s,t){
 }
 // A five-point tessellated slope: identical corner sampling keeps neighboring tiles continuous.
 function slopeGeometry(s,t){
- const center=A.groundHeight(s,t.x,t.y),corner=[[-.5,-.5],[.5,-.5],[.5,.5],[-.5,.5]],vertices=[];
+ const center=A.groundHeight(s,t.x,t.y),corner=[[-.5,-.5],[.5,-.5],[.5,.5],[-.5,.5]],vertices=[],uvs=[];
  for(let i=0;i<4;i++){const p=corner[i],q=corner[(i+1)%4];
   vertices.push(p[0],A.groundHeight(s,t.x+p[0],t.y+p[1])-center,p[1],
-   0,0,0,q[0],A.groundHeight(s,t.x+q[0],t.y+q[1])-center,q[1]);
+   0,0,0,q[0],A.groundHeight(s,t.x+q[0],t.y+q[1])-center,q[1]);uvs.push(p[0]+.5,p[1]+.5,.5,.5,q[0]+.5,q[1]+.5);
  }
- const geo=new T.BufferGeometry();geo.setAttribute('position',new T.Float32BufferAttribute(vertices,3));geo.computeVertexNormals();return geo;
+ const geo=new T.BufferGeometry();geo.setAttribute('position',new T.Float32BufferAttribute(vertices,3));geo.setAttribute('uv',new T.Float32BufferAttribute(uvs,2));geo.computeVertexNormals();return geo;
 }
 function highlandDetails(parent,s,t,x,z,n){
  const seed=(t.x*71+t.y*163+s.mission.seed)%19,h=A.elevation(s,t);
@@ -305,7 +326,7 @@ s.tiles.forEach(t=>{if(t.terrain==='void')return;
   box(patch,t.terrain==='mountain'?0x536963:0x54746a,x,-height*.5-.29,z,.994,height+.52,.994);
   tile=mesh(patch,slopeGeometry(s,t),c,x,.012,z);tile.userData.terrainSurface=true;this.slopeSurfaces.push(tile);
  }else tile=box(patch,c,x,-.25,z,1,.5,1);
- tile.userData.tile=t;
+ tile.userData.tile=t;if(biome!=='toy'){tile.material=terrainMaterial(c,t.terrain==='water'?'water':['road','bridge'].includes(t.terrain)?'road':biome);}
 if(t.pad){box(patch,0x344e59,x,.025,z,.82,.035,.82);for(let i=-2;i<=2;i++)box(patch,0xc7ba86,x+i*.13,.049,z,.05,.01,.65);}
 if(t.terrain==='mountain'){
  if(biome==='toy'){
@@ -449,7 +470,7 @@ makeHarbor(s){
 makeBackdrop(s){const b=s.mission.biome,seed=s.mission.seed||1,isToy=b==='toy',snow=b==='snow',high=b==='mountain',urban=b==='urban',desert=b==='desert';
  const land=(b==='coast'||b==='islands')?0x397d8a:(this.groundColor||TOY_FELT);
  // A real terrain-colored world beneath the board prevents the sky from appearing as the floor.
- box(this.backdrop,land,0,-.255,0,125,.5,115);if(isToy){this.makeToyRoom(s);return;}skyDome(this.backdrop,s);if(b==='coast'||b==='islands')this.makeHarbor(s);
+ const floor=box(this.backdrop,land,0,-.255,0,125,.5,115);if(!isToy)floor.material=terrainMaterial(land,(b==='coast'||b==='islands')?'water':b);if(isToy){this.makeToyRoom(s);return;}skyDome(this.backdrop,s);if(b==='coast'||b==='islands')this.makeHarbor(s);
  for(let i=0;i<55;i++){const a=i/55*Math.PI*2,range=18+(i%6)*2.4,x=Math.cos(a)*range,z=Math.sin(a)*range;
   if(high||snow||desert)crag(this.backdrop,high?0x627c78:snow?0xb4c5c8:0xbda17c,x,-.49,z,1.5+(i%4),.35+(i%5)*.17,1.4+(i%3),i%5);
   else if((b==='coast'||b==='islands')&&i%4===0){crag(this.backdrop,0x689486,x,-.23,z,2.4+(i%3),.48+(i%2)*.32,2.8,i%5);if(i%3===0)pine(this.backdrop,x+.25,z-.2,i,false);}
