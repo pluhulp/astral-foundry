@@ -1,11 +1,11 @@
 const test=require('node:test'),assert=require('node:assert/strict'),A=require('./core.js');
-function field(){const s=A.make(A.missions[0]);s.phase='combat';s.units=[];s.tiles.forEach(t=>{t.terrain='plain';t.facility=null;t.owner=-1;t.objective=false;});const p=A.tile(s,s.home.x,s.home.y);p.facility='hq';p.owner=0;const q=A.tile(s,s.enemyHome.x,s.enemyHome.y);q.facility='hq';q.owner=1;return s;}
+function field(){const s=A.make(A.missions[0]);s.phase='combat';s.units=[];s.tiles.forEach(t=>{t.terrain='plain';t.facility=null;t.owner=-1;t.objective=false;});const p=A.tile(s,s.home.x,s.home.y);p.facility='hq';p.owner=0;const q=A.tile(s,s.enemyHome.x,s.enemyHome.y);q.facility='hq';q.owner=1;s.side=1;return s;}
 test('enemy field director prioritizes recon, logistic support, then heavier units',()=>{
  const s=field(),armor=A.add(s,'heavy',1,7,8),recon=A.add(s,'scout',1,8,8),med=A.add(s,'medic',1,9,8);
  const ids=A.enemyOrder(s).map(u=>u.id);assert(ids.indexOf(recon.id)<ids.indexOf(armor.id));assert(ids.indexOf(med.id)<ids.indexOf(armor.id));
 });
 test('shared intelligence never acquires invisible targets and expires stale contacts after two turns',()=>{
- const s=field(),enemy=A.add(s,'scout',1,3,3),target=A.add(s,'rifle',0,7,3);
+ const s=field(),enemy=A.add(s,'rifle',1,3,3),target=A.add(s,'rifle',0,7,3);
  A.tile(s,7,3).terrain='forest';assert(!A.visibleTo(s,target,1));
  assert.equal(Object.keys(A.commandIntel(s).contacts).length,0);
  A.tile(s,7,3).terrain='plain';s.aiOrders=null;assert(A.commandIntel(s).contacts[target.id]);
