@@ -446,6 +446,7 @@ function hurt(s,u,n){u.hp=Math.max(0,u.hp-n);if(u.hp>0&&u.hp/u.maxHp<=.45&&n>=12
    s.lastKillTurn=s.turn;s.killsThisTurn=(s.killsThisTurn||0)+1;
    if(s.killsThisTurn%2===0&&(s.momentumRewards||0)<2){s.momentumRewards=(s.momentumRewards||0)+1;if(!s.operator)s.credits=Math.min(24,s.credits+1);log(s,'MOMENTUM +1 supply: consecutive enemy takedowns.');}
  }}else s.losses++;if(u.cargo){let c=s.units.find(v=>v.id===u.cargo);if(c&&c.hp>0){c.hp=0;if(c.team===0)s.losses++;}}}}
+function isExplosiveShot(u){return has(u,'splash')||has(u,'indirect')||D[u.type].branch==='Navy'||weapon(u).power>=40&&['Armor','Air'].includes(D[u.type].branch)||D[u.type].branch==='Infantry'&&has(u,'antiArmor');}
 function attack(s,a,b){
  if(s.result||s.side!==a.team||!canAttack(s,a,b))return false;
  const bombard=a.battery||a.bombardTurn===s.turn,point={x:b.x,y:b.y},n=damage(s,a,b),initial=b.hp;
@@ -453,7 +454,7 @@ function attack(s,a,b){
  if(a.suppressTurn===s.turn){b.suppressedUntil=s.turn+(a.team===1?1:0);a.suppressTurn=null;}
  a.shotRound=s.turn;a.ammo[a.weapon||0]--;a.used[a.weapon||0]=true;a.fired=a.used.every((used,i)=>used||a.ammo[i]===0);
  a.moved=true;a.guard=false;a.evadeMove=a.harassTurn===s.turn?s.turn:null;a.harassTurn=null;a.xp+=initial>0&&b.hp===0?1:0;
- s.events.push({kind:'attack',from:{x:a.x,y:a.y},to:point,damage:n,id:b.id,sourceType:a.type,targetType:b.type,explosive:bombard||has(a,'splash')||has(a,'indirect')||D[a.type].branch==='Navy',destroyed:initial>0&&b.hp===0});
+ s.events.push({kind:'attack',from:{x:a.x,y:a.y},to:point,damage:n,id:b.id,sourceType:a.type,targetType:b.type,explosive:bombard||isExplosiveShot(a),destroyed:initial>0&&b.hp===0});
  if(bombard){
   let friendlies=0;
   for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){
@@ -471,7 +472,7 @@ function attack(s,a,b){
  }
  if(b.hp>0&&canAttack(s,b,a,true)&&!has(b,'indirect')){
   b.ammo[b.weapon||0]--;const reply=Math.round(damage(s,b,a)*.45),before=a.hp;hurt(s,a,reply);
-  s.events.push({kind:'counter',from:{x:b.x,y:b.y},to:{x:a.x,y:a.y},damage:reply,id:a.id,sourceType:b.type,targetType:a.type,explosive:has(b,'splash')||has(b,'indirect')||D[b.type].branch==='Navy',destroyed:before>0&&a.hp===0});
+  s.events.push({kind:'counter',from:{x:b.x,y:b.y},to:{x:a.x,y:a.y},damage:reply,id:a.id,sourceType:b.type,targetType:a.type,explosive:isExplosiveShot(b),destroyed:before>0&&a.hp===0});
  }
  check(s);return true;
 }
