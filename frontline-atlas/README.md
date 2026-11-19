@@ -1,3 +1,28 @@
+# Frontline Atlas v9.5 — Free-flight camera
+
+The previous camera rotated around a central pivot with an orthographic projection. The entire navigation layer has been replaced by a **real perspective camera located in 3D world space**. Mouse look changes only the camera's heading and pitch; movement translates the camera itself, not the terrain or an artificial orbit target.
+
+## Controls
+- **Hold right mouse + move:** free-look yaw/pitch, without orbiting a map pivot
+- **WASD:** continuous camera-relative free flight across the battlefield
+- **E / Q:** fly up / down
+- **Shift:** 2.35× movement speed while held
+- **Alt:** precision movement at 40% speed
+- **Mouse wheel / + / − controls:** physically dolly camera forward/backward, not just change the orthographic zoom
+- **Left-drag:** grab and translate the camera across the map without rotating it
+- **F or ◎ button:** physically fly to selected unit and aim at it
+- **R or ⌂ button:** reset to the familiar overview angle
+- **↶ / ↷ buttons:** look left/right in 45° steps
+- **Settings > Camera controls:** free flight by default, with an alternate left-drag look option
+- **Settings > Camera flight speed:** Slow/Normal/Fast persistent preferences
+
+Perspective raycasting retains troop selection, attack clicks, terrain tiles and UI. The camera is clamped above the ground plane and inside a generous world boundary. Camera smoothing/acceleration runs on the existing animation loop, and input is released on window blur or when opening a menu. The camera is not saved into the player's battle or profile progression, and older settings remain valid.
+
+## Tests
+Run `node --test *.test.cjs` inside `frontline-atlas/`. The suite includes camera perspective/heading invariance, actual movement, height/speed, unit focus, UI control persistence and the battle's existing tactical controls.
+
+---
+
 # Frontline Atlas v9.4 — Command and Special Operations
 
 ## The new battlefield director
