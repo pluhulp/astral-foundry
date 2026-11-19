@@ -1,3 +1,20 @@
+# Frontline Atlas v9.7 — Combat Feel & Square Cliffside Terrain
+
+## Combat animation priorities
+- **True route-following travel:** units move through every tactical waypoint, not directly to the final square. Movement duration scales with branch and path length (armor ~200 ms/tile, infantry 220, navy 240, air 165) and smooths the start/end of the move. Vehicles ease their orientation into turns, infantry lightly bob, aircraft bank, and armor can leave a small puff of dust.
+- **Visible shell trajectories:** a shot leaves the firing position and follows a short, animated ballistic tracer to the target, landing after the firing effect rather than instantly. Navies, mortars, artillery and the five-shell barrages use the stronger explosion treatment.
+- **Impact spectacle:** bright initial flash, shockwave ring, short-lived blast cloud, small debris sparks and floating damage text synchronized with impact. Impacts on water produce a pale foam ring; land impacts from explosive weapons leave a small scorch crater. Destroyed vehicles sometimes leave compact wreckage pieces.
+- **Cosmetic craters:** capped at 58 simultaneous historical marks, not persisted in save data, not physics obstacles and not gameplay damage. Temporary effects are capped during large artillery attacks for GPU performance.
+- **Motion setting honored:** reduced-motion mode skips route animation, dust and extra particles; impacts remain brief so hit confirmation is still readable.
+
+## Highlands: square terraces, angular ramps, cloud cliffs
+The highlands retain a high-altitude impression while **the tactical map itself remains blocky**. The former smoothly interpolated mountain heightfield is now a handful of flat, square terraces (~2.5 units total height change), joined by simple triangular ramps where roads step up or down. Vertical cliff faces, a lower cloud bank and huge distant peaks give the sense of a summit or cliffside battle without throwing large curved hills through the map. Gentle raised hill tiles occur in other biomes too. The free-flight camera, unit altitude, high-ground firing bonuses and mountain ray-picking use the same revised stepped height function.
+
+## Verification
+Use `node --test *.test.cjs` in `frontline-atlas/`. The `animations.test.cjs` suite verifies route interpolation, true projectile travel, distinct water/land impacts, persistent bounded craters, effect lifecycle and reduced motion. `environment.test.cjs` verifies the flat square tiers, angular ramps, 80-map connectivity and shared alpine 3D raycasting. Saves retain the same v3 storage format. Other games in the repository are untouched.
+
+---
+
 # Frontline Atlas v9.6 — Worldcraft: Mountains, Harbors & Atmosphere
 
 ## The mountains are finally mountains
