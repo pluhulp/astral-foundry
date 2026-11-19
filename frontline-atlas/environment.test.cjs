@@ -64,8 +64,8 @@ test('slopes cost uphill infantry and armor movement but never slow air and ship
  assert(budget===A.D.fighter.move);
  assert(A.rangeElevation(s,infantry,{x:road.x,y:road.y})===0);
 });
-test('the navy retains 32 playable sea theaters and coastal maps are genuinely ocean-dominant',()=>{
- const maps=A.missions.filter(A.navalMap);assert.equal(maps.length,32);
+test('the navy retains 33 playable sea theaters and coastal maps are genuinely ocean-dominant',()=>{
+ const maps=A.missions.filter(A.navalMap);assert.equal(maps.length,33);
  for(const m of maps){const s=A.make(m),sea=s.tiles.filter(t=>t.terrain==='water').length/s.tiles.length;
   assert(sea>=.25,m.name+' open sea '+sea);
   if(['coast','islands'].includes(m.biome))assert(sea>=.49,m.name+' should be a bluewater level');
