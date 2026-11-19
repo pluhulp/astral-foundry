@@ -184,12 +184,33 @@ const chapters=[
 {name:'Playroom Rebellion',biome:'toy',kicker:'THE ATTIC FRONT',story:'Tiny armies battle across a toy-strewn attic: blocks, marbles, model railways, and carpeted hills.',names:['Tin Platoon','Building Blocks','Train Set','Lost Marbles','Cardboard Keep','The Floor Is Lava','Toy Box','Clockwork Army','Bedroom Siege','Last Toy Standing']},
 {name:'Highland Storm',biome:'mountain',kicker:'THE HIGH PASSES',story:'Storm clouds, steep ridges, alpine villages, and ambushes guard the highland passes.',names:['Ridgeline','Mountain Village','Snowmelt Ford','Echo Valley','Thunder Road','Pine Pass','Cliff Harbor','Long Ascent','Storm Warning','Above the Clouds']}
 ];
-const objectiveNames={capture:'Capture enemy HQ',eliminate:'Eliminate hostile forces',hold:'Hold the relay for 4 turns',convoy:'Escort the courier to extraction',strike:'Destroy the command vehicle',seize:'Capture and hold all marked facilities for 2 rounds',protect:'Protect the relief convoy for 10 rounds',defense:'Survive three offensive waves and secure HQ'};
-const missions=chapters.flatMap((c,ch)=>c.names.map((name,n)=>({id:ch*10+n,name,ch,n,biome:c.biome,seed:1807+ch*171+n*37,type:['capture','seize','protect','strike','eliminate','hold','convoy','seize','protect','capture'][n],difficulty:1+ch+Math.floor(n/4),par:12+ch*2+n,description:c.story})));
+const objectiveNames={capture:'Capture enemy HQ',eliminate:'Eliminate hostile forces',hold:'Hold the relay for 4 turns',convoy:'Escort the courier to extraction',strike:'Destroy the command vehicle',seize:'Capture and hold all marked facilities for 2 rounds',protect:'Protect the relief convoy for 10 rounds',defense:'Survive three offensive waves and secure HQ',battery:'Destroy all four siege batteries',counterbattery:'Defend your artillery against five enemy assault waves',escort:'Escort the autonomous convoy to extraction',breach:'Break three entrenched defensive positions',intercept:'Intercept the escaping enemy flagship'};
+const specialOperations={
+ 5:'defense',8:'battery',14:'breach',16:'escort',17:'intercept',18:'battery',
+ 22:'intercept',25:'counterbattery',26:'escort',29:'battery',
+ 33:'breach',35:'defense',38:'battery',
+ 42:'intercept',46:'escort',49:'intercept',
+ 52:'breach',55:'counterbattery',58:'battery',59:'breach',
+ 62:'escort',65:'defense',68:'counterbattery',69:'breach',
+ 72:'battery',75:'counterbattery',77:'breach',79:'battery'
+};
+const operationDescriptions={
+ battery:'FOUR RED BATTERIES · Red warning zones mark incoming five-shell strikes. Destroy the guns to silence them.',
+ counterbattery:'REVERSE SIEGE · You command four fixed heavy batteries. Repel five large assaults before they overrun your guns.',
+ escort:'NO REINFORCEMENTS · 40 starting supply, six starting pads in a line. Escort an autonomous convoy through ambushes.',
+ breach:'FORTIFIED BREAKTHROUGH · Destroy three protected strongpoints through successive defensive lines.',
+ intercept:'NAVAL INTERCEPTION · Sink a heavily escorted enemy flagship before it escapes west.',
+ defense:'WAVE DEFENSE · Survive three incoming attacks with enhanced starting reserves.'
+};
+const defaultSubtitles={capture:'FRONTLINE ASSAULT · Advance infantry to the enemy command post',seize:'MULTI-POINT CONTROL · Secure and hold contested objectives',protect:'HOLD THE PERIMETER · Keep relief vehicles alive',strike:'HIGH-VALUE TARGET · Destroy enemy command armor',eliminate:'CLEAR THE FIELD · Eliminate hostile formations',hold:'POSITIONAL WARFARE · Retain the relay under counterattack',convoy:'MOBILE ESCORT · Guide the courier to extraction'};
+const missions=chapters.flatMap((c,ch)=>c.names.map((name,n)=>{
+ const id=ch*10+n,type=specialOperations[id]||['capture','seize','protect','strike','eliminate','hold','convoy','seize','protect','capture'][n];
+ return {id,name,ch,n,biome:c.biome,seed:1807+ch*171+n*37,type,difficulty:1+ch+Math.floor(n/4),par:12+ch*2+n,description:c.story,subtitle:operationDescriptions[type]||defaultSubtitles[type]};
+}));
 const has=(u,t)=>D[u.type].traits.includes(t),dist=(a,b)=>Math.abs(a.x-b.x)+Math.abs(a.y-b.y);
 function rng(seed){return ()=>{seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return ((t^t>>>14)>>>0)/4294967296;};}
 function make(m,difficulty='normal',upgrades={},deck=['rifle','scout','medic','light','supply']){
-const error=deckError(deck,m);if(error)throw new Error(error);const rand=rng(m.seed),w=24+(m.n%3)*2,h=18+(m.n%4)*2,mid=Math.floor(h/2),s={version:3,phase:'deployment',fog:true,deck:[...deck],mission:{...m},w,h,turn:1,side:0,credits:m.type==='defense'?20:10,enemyCredits:8,difficulty,units:[],tiles:[],log:[],nextId:1,result:null,hold:0,seized:0,kills:0,losses:0,upgrades:{...upgrades},events:[],pads:[],seen:[],home:{x:2,y:mid},enemyHome:{x:w-3,y:mid+(m.n%3)-1}};
+const error=deckError(deck,m);if(error)throw new Error(error);const rand=rng(m.seed),w=24+(m.n%3)*2,h=18+(m.n%4)*2,mid=Math.floor(h/2),s={version:3,phase:'deployment',fog:true,deck:[...deck],mission:{...m},w,h,turn:1,side:0,credits:m.type==='defense'?20:m.type==='escort'||m.type==='counterbattery'?40:m.type==='battery'?22:m.type==='breach'?18:10,enemyCredits:8,difficulty,units:[],tiles:[],log:[],nextId:1,result:null,hold:0,seized:0,kills:0,losses:0,upgrades:{...upgrades},events:[],pads:[],seen:[],home:{x:2,y:mid},enemyHome:{x:w-3,y:mid+(m.n%3)-1}};
 for(let y=0;y<h;y++)for(let x=0;x<w;x++){
 const edge=1+Math.floor((Math.sin(y*.7+m.seed)*.5+.5)*3),inset=1+Math.floor((Math.cos(x*.5+m.n)*.5+.5)*2);const shape=m.n%6,cut=shape===0?Math.abs(y-mid)<3&&x>w-6:shape===1?x>w*.45&&x<w*.65&&y<mid-3:shape===2?(x<4||x>w-5)&&(y<5||y>h-6):shape===3?y<Math.floor(x*.22)-1:shape===4?y>h-2-Math.floor(Math.abs(x-w/2)*.3):x<5&&Math.abs(y-mid)>4;const ridge=Math.sin((x+m.seed*.001)*.43)*.43+Math.cos((y-m.seed*.002)*.51)*.35+Math.sin((x+y)*.24+m.n)*.24;let terrain=cut||x<edge-1||x>w-edge||y<inset-1||y>h-inset?'void':ridge>.53?'mountain':ridge>.25?'hill':ridge<-.35?'forest':'plain';if(terrain==='plain'&&rand()<.06)terrain='forest';
 if(m.biome==='desert'&&terrain==='forest')terrain='dune';if(m.biome==='urban'&&terrain==='forest')terrain='ruins';if(m.biome==='toy'&&terrain==='forest')terrain='ruins';if(m.biome==='mountain'&&terrain==='plain'&&rand()<.08)terrain='forest';
@@ -242,7 +263,120 @@ if(navalMap(m)){
 if(['hold','seize','capture','defense'].includes(m.type)){const guarded=s.tiles.filter(t=>t.facility&&(t.objective||t.facility==='relay'||t.facility==='factory')&&t.x>w*.35).slice(0,m.type==='defense'?3:2);for(const [i,target] of guarded.entries()){let t=s.tiles.filter(t=>t.terrain!=='void'&&!t.facility&&dist(t,target)>=1&&dist(t,target)<=3&&passable(s,{type:'mg'},t.x,t.y)&&!at(s,t.x,t.y)).sort((a,b)=>dist(a,target)-dist(b,target))[0];if(t){let u=add(s,i%2?'rocket':'mg',1,t.x,t.y);u.entrenched=true;u.sentry=true;}}}
 if(m.type==='defense'){for(let i=0;i<3;i++){const x=Math.floor(w*.62)+i,y=mid-4+i*4,t=tile(s,x,y);if(t){t.terrain='road';const u=add(s,i===1?'rocket':'rifle',1,x,y);u.entrenched=true;u.sentry=true;}}}
 if(m.type==='protect'||m.type==='convoy'){const u=add(s,'apc',0,3,mid);u.courier=true;u.protected=m.type==='protect';if(u.protected)u.moved=u.fired=true;}
-log(s,'Place your force. '+s.credits+' initial supply; captured positions grant reserves and command capacity.');return s;
+initializeSpecial(s);
+log(s,'Place your force. '+s.credits+' initial supply; captured positions grant reserves and command capacity.');
+return s;
+}
+
+function safeSpawn(s,type,team,x,y,traits={}){
+ const t=tile(s,x,y);if(!t||!passable(s,{type},x,y)||at(s,x,y))return null;
+ const u=add(s,type,team,x,y);Object.assign(u,traits);return u;
+}
+function initializeSpecial(s){
+ const m=s.mission,mid=Math.floor(s.h/2),w=s.w;
+ if(m.type==='escort'){
+   s.escortNoReinforce=true;
+   // Six closely spaced starting positions, all on the paved approach.
+   s.pads=s.pads.filter(p=>p.kind==='sea');
+   for(let x=2;x<=7;x++){const y=mid+1,t=tile(s,x,y);t.terrain='road';t.pad=true;s.pads.push({x,y,kind:'land'});}
+   const t=tile(s,3,mid);t.terrain='road';
+   const courier=s.units.find(u=>u.courier)||safeSpawn(s,'apc',0,3,mid);
+   courier.courier=true;courier.protected=true;courier.moved=courier.fired=true;
+   s.convoyRoute=[];for(let x=3;x<=w-3;x++)s.convoyRoute.push({x,y:mid});for(let y=mid+1;y<=mid+4;y++)s.convoyRoute.push({x:w-3,y});
+   s.escortProgress=0;s.escortAmbushes=0;
+   for(const pos of s.convoyRoute){const road=tile(s,pos.x,pos.y);if(road&&road.terrain!=='water'){road.terrain='road';road.path=false;}}
+   s.extraction={x:w-3,y:mid+4};
+ }
+ if(m.type==='battery'||m.type==='counterbattery'){
+   s.batteryIDs=[];s.warningZones=[];s.batteryWave=0;
+   for(let i=0;i<4;i++){
+     const x=m.type==='battery'?w-5-(i%2)*2:3+(i%2)*2;
+     const y=mid-5+Math.floor(i/2)*9;
+     const t=tile(s,x,y);t.terrain='road';t.path=false;
+     // Heavy ground emplacements are static but retain attack actions.
+     const u=safeSpawn(s,'mlrs__4',m.type==='battery'?1:0,x,y,{battery:true,anchored:true,entrenched:true,sentry:true});
+     if(u){u.maxHp=Math.round(u.maxHp*1.5);u.hp=u.maxHp;s.batteryIDs.push(u.id);}
+   }
+ }
+ if(m.type==='breach'){
+   s.strongpointIDs=[];
+   for(let i=0;i<3;i++){
+     const x=Math.floor(w*.47)+i*3,y=mid+(i-1)*4,t=tile(s,x,y);
+     t.terrain='road';t.path=false;
+     const u=safeSpawn(s,i===2?'heavy':'td',1,x,y,{strongpoint:true,anchored:true,entrenched:true,sentry:true});
+     if(u){u.maxHp=Math.round(u.maxHp*1.35);u.hp=u.maxHp;s.strongpointIDs.push(u.id);}
+     for(let j=0;j<2;j++){const px=x-1+(j%2)*2,py=y+1,pt=tile(s,px,py);if(pt&&pt.terrain!=='void'&&!pt.facility&&pt.terrain!=='water'){pt.terrain='road';safeSpawn(s,j?'rocket':'mg',1,px,py,{entrenched:true,sentry:true});}}
+   }
+ }
+ if(m.type==='intercept'){
+   const y=s.h-3,x=w-4,t=tile(s,x,y);t.terrain='water';
+   const flagship=safeSpawn(s,'carrier',1,x,y,{flagship:true,escape:true});
+   if(flagship){flagship.maxHp=Math.round(flagship.maxHp*1.2);flagship.hp=flagship.maxHp;s.flagshipId=flagship.id;}
+ }
+}
+function batteryWarnings(s){
+ if(s.mission.type!=='battery')return;
+ const guns=alive(s,1).filter(u=>u.battery);
+ const targets=alive(s,0).filter(u=>!u.carried&&(!u.courier||!u.protected));
+ s.warningZones=[];
+ for(let i=0;i<guns.length;i++){
+  if(!targets.length)break;
+  const rank=targets.slice().sort((a,b)=>{
+    const score=v=>(v.courier?100:0)+(D[v.type].branch==='Armor'?20:0)+alive(s,0).filter(k=>dist(k,v)===1).length*24;
+    return score(b)-score(a)||a.id-b.id;
+  });
+  const target=rank[(i+s.turn)%rank.length];
+  s.warningZones.push({batteryId:guns[i].id,x:target.x,y:target.y,turn:s.turn+1});
+ }
+ if(s.warningZones.length)log(s,s.warningZones.length+' enemy batteries acquiring targets — move out of the RED STRIKE ZONES!');
+}
+function batteryStrike(s){
+ if(s.mission.type!=='battery'||!s.warningZones?.length)return;
+ for(const z of s.warningZones){
+  const gun=s.units.find(v=>v.id===z.batteryId&&v.hp>0);if(!gun)continue;
+  const impact=[[0,0],[1,0],[-1,0],[0,1],[0,-1]];
+  for(const [dx,dy] of impact){
+   const p={x:z.x+dx,y:z.y+dy},t=tile(s,p.x,p.y);if(!t||t.terrain==='void')continue;
+   const victim=at(s,p.x,p.y);
+   const amount=victim?Math.max(8,Math.round((dx===0&&dy===0?39:24)*(s.difficulty==='hard'?1.15:1))):0;
+   if(victim)hurt(s,victim,amount);
+   s.events.push({kind:'attack',from:{x:gun.x,y:gun.y},to:p,damage:amount,id:victim?.id});
+  }
+ }
+ s.warningZones=[];log(s,'MERIDIAN ARTILLERY: saturation strike landed!');
+}
+function specialWave(s){
+ if(s.mission.type!=='counterbattery'&&s.mission.type!=='escort'&&s.mission.type!=='breach')return;
+ const n=s.mission.type==='counterbattery'?5:s.mission.type==='escort'?4:3;
+ const trigger=s.mission.type==='counterbattery'?s.turn%2===0:s.mission.type==='escort'?s.turn%3===0:s.turn%3===0;
+ if(!trigger||s.batteryWave>=n)return;
+ s.batteryWave=(s.batteryWave||0)+1;
+ const mid=Math.floor(s.h/2),size=s.mission.type==='counterbattery'?5+s.batteryWave:s.mission.type==='escort'?3+s.batteryWave:3+s.batteryWave;
+ const pool=s.batteryWave>=3?['rifle','rocket','light','td','mg','heavy']:['rifle','rocket','scout','light','mg','grenadier'];
+ let count=0;
+ for(let j=0;j<size;j++){
+  const x=s.mission.type==='escort'?Math.min(s.w-5,Math.floor(s.w*.45)+s.batteryWave*2):s.w-5-Math.floor(j/3)*2;
+  const y=Math.max(2,Math.min(s.h-3,mid-6+(j%6)*2));
+  const t=tile(s,x,y),type=pool[(j+s.batteryWave)%pool.length];if(!t||t.facility||at(s,x,y)||t.terrain==='water')continue;
+  if(!passable(s,{type},x,y)){t.terrain='road';}
+  const u=safeSpawn(s,type,1,x,y,{assault:true});if(u){count++;u.sentry=false;u.entrenched=false;}
+ }
+ log(s,'INCOMING ASSAULT '+s.batteryWave+'/'+n+': '+count+' enemy units — protect your assets!');
+}
+function advanceConvoy(s){
+ if(s.mission.type!=='escort')return;
+ const courier=s.units.find(u=>u.courier&&u.hp>0);if(!courier)return;
+ let steps=0;
+ while(steps<2&&s.escortProgress<s.convoyRoute.length-1){
+  const pos=s.convoyRoute[s.escortProgress+1],occupant=at(s,pos.x,pos.y);
+  if(occupant&&occupant!==courier)break;
+  const danger=alive(s,1).some(u=>dist(u,courier)<=2);
+  if(danger&&steps>0)break;
+  const old={x:courier.x,y:courier.y};courier.x=pos.x;courier.y=pos.y;s.escortProgress++;steps++;
+  s.events.push({kind:'move',id:courier.id,from:old,to:{...pos},path:[{...pos}]});
+ }
+ if(steps)log(s,'Convoy advanced '+steps+' tile(s). '+(s.convoyRoute.length-1-s.escortProgress)+' remaining.');
+ else log(s,'Convoy halted — clear the road and protect the route!');
 }
 function launch(s){if(s.phase!=='deployment'||!alive(s,0).some(u=>!u.courier))return false;s.phase='combat';log(s,objectiveNames[s.mission.type]+'. Hold facilities to build supply and command capacity.');return true;}
 function tile(s,x,y){return x>=0&&y>=0&&x<s.w&&y<s.h?s.tiles[y*s.w+x]:null;}
