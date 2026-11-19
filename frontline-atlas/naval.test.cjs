@@ -1,7 +1,7 @@
 const test=require('node:test'),assert=require('node:assert/strict'),A=require('./core.js');
 function field(){const s=A.make(A.missions[0]);s.phase='combat';s.units=[];s.tiles.forEach(t=>{t.terrain='plain';t.facility=null;t.owner=-1;t.objective=false;t.path=false;});s.tiles[s.home.y*s.w+s.home.x].facility='hq';A.tile(s,s.home.x,s.home.y).owner=0;A.tile(s,s.enemyHome.x,s.enemyHome.y).facility='hq';A.tile(s,s.enemyHome.x,s.enemyHome.y).owner=1;return s;}
-test('each of 32 naval-compatible maps has open-water staging, actual enemy fleet and navigable sea lanes',()=>{
- const maps=A.missions.filter(A.navalMap);assert.equal(maps.length,32);
+test('each of 33 naval-compatible maps has open-water staging, actual enemy fleet and navigable sea lanes',()=>{
+ const maps=A.missions.filter(A.navalMap);assert.equal(maps.length,33);
  for(const m of maps){
   const s=A.make(m),sea=s.tiles.filter(t=>t.terrain==='water').length/s.tiles.length;
   assert(sea>=.25,m.name+' water ratio '+sea);

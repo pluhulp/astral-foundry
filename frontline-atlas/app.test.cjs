@@ -123,3 +123,18 @@ test('40-supply escort and reverse artillery battles survive browser save reload
   assert.equal(h.view().state.mission.type,kind);
  }
 });
+
+test('resuming an older interception upgrades flagship hull proportionally without resetting player saves',()=>{
+ const m=A.missions.find(m=>m.type==='intercept'&&m.biome==='coast'),battle=A.make(m);
+ const ship=battle.units.find(u=>u.flagship);assert(ship);
+ ship.maxHp=Math.round(A.D.carrier.hp*1.2);ship.hp=Math.floor(ship.maxHp*.5);
+ const fraction=ship.hp/ship.maxHp,profile=A.freshProfile();
+ const h=harness(A,source,{'frontline-atlas-v3':JSON.stringify({profile,battle})});
+ assert(h.node('screen-content').innerHTML.includes('Resume operation'));
+ h.click('resume');
+ const loaded=h.view().state.units.find(u=>u.flagship);
+ assert.equal(loaded.maxHp,Math.round(A.D.carrier.hp*1.6));
+ assert(Math.abs(loaded.hp/loaded.maxHp-fraction)<.01);
+ assert.equal(h.view().state.version,3);
+ assert.deepEqual(h.saved().profile.completed,{});
+});
