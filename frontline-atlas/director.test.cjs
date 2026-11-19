@@ -43,3 +43,26 @@ test('rapid aggression earns capped tactical supply without giving enemies free 
  assert(A.attack(s,gun,a));A.selectWeapon(gun,1);assert(A.attack(s,gun,b));
  assert.equal(s.credits,7);assert.equal(s.momentumRewards,1);
 });
+
+test('enemy naval reinforcement adapts to a visible player capital ship',()=>{
+ const s=A.make(A.missions.find(m=>m.biome==='coast'));s.phase='combat';
+ const sea=A.tile(s,s.w-8,s.h-3);sea.terrain='water';A.add(s,'battleship',0,sea.x,sea.y);
+ s.enemyCredits=22;s.turn=2;
+ const before=A.alive(s,1).filter(v=>A.D[v.type].branch==='Navy').length;
+ A.beginPlayer(s);
+ const flotilla=A.alive(s,1).filter(v=>A.D[v.type].branch==='Navy');
+ assert(flotilla.length>before,'enemy should reinforce its fleet at the next scheduled naval response');
+ assert(flotilla.some(v=>A.D[v.type].family==='sub'),'naval command should deploy submarines against visible capital ships');
+});
+test('empty battlefield allows two recovery turns, then ends the lost mission instead of stalling',()=>{
+ const s=field();s.side=0;s.credits=12;s.phase='combat';s.units=[];
+ A.beginPlayer(s);assert.equal(s.emptyRounds,1);assert.equal(s.result,null);
+ A.beginPlayer(s);assert.equal(s.emptyRounds,2);assert.equal(s.result,null);
+ A.beginPlayer(s);assert.equal(s.result,'defeat');
+});
+test('using the emergency deployment window resets empty battlefield pressure',()=>{
+ const s=field();s.side=0;s.credits=12;s.phase='combat';s.units=[];
+ A.beginPlayer(s);assert.equal(s.emptyRounds,1);
+ assert(A.recruit(s,'rifle'));A.beginPlayer(s);
+ assert.equal(s.emptyRounds,0);assert.equal(s.result,null);
+});
