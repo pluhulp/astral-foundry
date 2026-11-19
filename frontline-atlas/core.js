@@ -172,7 +172,7 @@ log(s,D[u.type].name+': '+a.name+'.');return true;
 }
 function moveBudget(s,u){if(u.disabled||u.landed)return 0;if(u.evadeMove===s.turn)return 2;const branch=D[u.type].branch,t=tile(s,u.x,u.y);const roadBoost=branch==='Armor'&&['road','bridge'].includes(t?.terrain)?1:0;const footBoost=branch==='Infantry'&&t?.path===true?1:0;return Math.max(1,D[u.type].move+roadBoost+footBoost+(u.boostTurn===s.turn?(u.moveBoost||0):0)-(u.suppressedUntil>=s.turn?1:0));}
 
-function navalMap(m){return ['coast','islands'].includes(m.biome)||m.n%4===2;}
+function navalMap(m){return ['coast','islands'].includes(m.biome)||m.n%4===2||m.type==='intercept';}
 function capacity(s,team=0){if(team===0&&s.operator)return 30;return 10+Math.min(10,s.tiles.filter(t=>t.owner===team&&t.facility&&t.facility!=='hq').reduce((n,t)=>n+(t.facility==='town'?2:1),0));}
 const chapters=[
 {name:'Greenline',biome:'grass',kicker:'THE HOME FRONT',story:'The Meridian Coalition has crossed the border. Reassemble the Atlas defense force and reopen the Greenline corridor.',names:['First Light','Orchard Road','The Crossing','Broken Signal','Iron Harvest','Hold the Line','Night Courier','Railhead','The Long Valley','Greenline Rising']},
@@ -287,9 +287,12 @@ for(const lane of [mid-2,mid+2])for(let x=3;x<w-3;x++){
 const enemies=['rifle','rocket','light','scout','supply',...(m.n>0?['mg']:[]),...(m.difficulty>2?['td','arty']:[]),...(m.ch>2?['aa','command']:[])];
 enemies.forEach((type,i)=>{let x=w-5-(i%3)*2,y=mid-5+Math.floor(i/3)*3;road(x,y);let u=add(s,type,1,x,y);if(i%3===0)u.entrenched=true;if(m.type==='strike'&&i===2)u.command=true;});
 if(navalMap(m)){
- const fleet=m.ch===2||m.ch===4?['patrol','frigate','gunboat','destroyer']:['patrol','gunboat'];
+ // A proper opposing task group: smaller waters get three ships, coastal seas
+ // start with a four/five-vessel combined-arms fleet. No inflated weapon stats.
+ const ocean=['coast','islands'].includes(m.biome)||m.type==='intercept';
+ const fleet=ocean?['patrol','frigate','gunboat','destroyer','sub']:['patrol','gunboat','frigate'];
  for(let i=0;i<fleet.length;i++){
-   const x=w-5-(i%2)*3,y=h-3-Math.floor(i/2)*2,t=tile(s,x,y);
+   const x=w-5-(i%3)*3,y=h-3-Math.floor(i/3)*2,t=tile(s,x,y);
    if(t&&t.terrain==='water'&&!at(s,x,y)){const ship=add(s,fleet[i],1,x,y);ship.entrenched=false;}
  }
 }
@@ -796,7 +799,7 @@ function counterpressure(s){if(!(s.alerts>0)||!s.lastCapture||s.mission.type==='
 function fleetReinforcements(s){
  if(!navalMap(s.mission)||s.turn<3||s.turn%3!==0)return;
  const enemyFleet=alive(s,1).filter(v=>D[v.type].branch==='Navy');
- if(enemyFleet.length>=6)return;
+ if(enemyFleet.length>=7)return;
  const revealed=alive(s,0).filter(v=>visibleTo(s,v,1)),capital=revealed.some(v=>['battleship','carrier','destroyer'].includes(D[v.type].family));
  const aircraft=revealed.some(v=>D[v.type].branch==='Air');
  const choice=capital?'sub':aircraft?'frigate':s.turn%6===0?'destroyer':'gunboat';
