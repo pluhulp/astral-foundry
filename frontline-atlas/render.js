@@ -592,10 +592,10 @@ events(){
   g.position.set(x,y,z);g.userData.impactMark=true;g.userData.water=wet;
   const radius=Math.min(.34,.22+(ev.damage||0)*.001);
   const dark=new T.Mesh(new T.CircleGeometry(radius,13),new T.MeshBasicMaterial({color:wet?0x488f9b:toy?0x64544b:snow?0x929b9a:0x292d29,transparent:true,opacity:wet?.33:.76,depthWrite:false,side:T.DoubleSide}));
-  dark.rotation.x=-Math.PI/2;g.add(dark);
+  dark.rotation.x=-Math.PI/2;dark.userData.uniqueImpactMaterial=true;g.add(dark);
   const rim=new T.Mesh(new T.RingGeometry(radius*.76,radius*1.25,13),
     new T.MeshBasicMaterial({color:wet?0xb1e0e0:toy?0x927d65:snow?0xc1cbc8:0x726c58,transparent:true,opacity:wet?.56:.73,depthWrite:false,side:T.DoubleSide}));
-  rim.position.y=.007;rim.rotation.x=-Math.PI/2;g.add(rim);
+  rim.position.y=.007;rim.rotation.x=-Math.PI/2;rim.userData.uniqueImpactMaterial=true;g.add(rim);
   if(ev.destroyed&&ev.targetType&&A.D[ev.targetType]?.branch!=='Infantry'&&!wet){
    for(const side of [-1,1]){
     const wreck=box(g,0x313d3b,side*.09,.045,side*.08,.16,.07,.19);
@@ -604,7 +604,7 @@ events(){
   }
   this.impactGroup.add(g);
   this.impactHistory.push(g);
-  while(this.impactHistory.length>58){const stale=this.impactHistory.shift();this.impactGroup.remove(stale);stale.traverse(o=>{if(o.material&&!Array.isArray(o.material))o.material.dispose();if(o.geometry&&o.geometry!==sphereGeo)o.geometry.dispose();});}
+  while(this.impactHistory.length>58){const stale=this.impactHistory.shift();this.impactGroup.remove(stale);stale.traverse(o=>{if(o.userData.uniqueImpactMaterial&&o.material)o.material.dispose();if(o.geometry&&o.geometry!==sphereGeo&&o.geometry!==boxGeo)o.geometry.dispose();});}
   return g;
  }
  createDust(x,z,y,size=.13){
@@ -612,7 +612,7 @@ events(){
   const fx=new T.Group(),smoke=mesh(fx,sphereGeo,0x9c9b86,0,0,0,size,size*.5,size);
   smoke.material=new T.MeshBasicMaterial({color:0xb5b1a0,transparent:true,opacity:.23,depthWrite:false});
   fx.position.set(x,y,z);this.scene.add(fx);
-  this.effects.push({kind:'dust',fx,smoke,start:performance.now(),duration:410});
+  this.effects.push({kind:'dust',fx,smoke,baseSize:size,start:performance.now(),duration:410});
  }
  makeShot(ev,now){
   if(!this.state||!ev.to||!ev.from)return;
@@ -659,7 +659,7 @@ events(){
    const count=a.path?.length||0,progress=Math.max(0,Math.min(1,(now-a.start)/Math.max(1,a.duration)));
    if(!g||!u||!count)return false;
    // Continuous travel across EVERY path tile; ease into departure and arrival only.
-   const ease=progress<.10?progress*progress*5:progress>.90?1-5*(1-progress)*(1-progress):progress-.05;
+   const ease=progress<.10?progress*progress*5:progress>.90?1-5*(1-progress)*(1-progress):.05+(progress-.10)*1.125;
    const distance=Math.max(0,Math.min(count,ease*count));
    const idx=Math.min(count-1,Math.floor(distance)),from=idx===0?a.from:a.path[idx-1],to=a.path[idx],mix=progress>=1?1:distance-idx;
    const gx=from.x+(to.x-from.x)*mix,gy=from.y+(to.y-from.y)*mix;
@@ -684,7 +684,7 @@ events(){
     e.el?.remove();if(e.fx)this.scene.remove(e.fx);return false;
    }
    if(e.kind==='dust'){
-    const f=elapsed/e.duration;e.smoke.scale.setScalar(1+f*2);
+    const f=elapsed/e.duration;e.smoke.scale.setScalar(e.baseSize*(1+f*2));
     e.smoke.material.opacity=.23*(1-f);
     e.fx.position.y+=.0015;return true;
    }
@@ -706,12 +706,12 @@ events(){
     }
    }
    const f=Math.min(1,(elapsed-e.travel)/Math.max(1,e.burst)),p=1-Math.pow(1-f,3);
-   e.flame.scale.setScalar(1+p*(e.explosive?2.2:1.0));
+   const flare=1+p*(e.explosive?2.2:1.0);e.flame.scale.set(.24*flare,.22*flare,.24*flare);
    e.flame.position.y=.10+p*.14;e.flame.material.opacity=.95*Math.pow(1-f,2.5);
-   e.core.scale.setScalar(Math.max(.01,1-f*1.7));e.core.material.opacity=1-f;
+   e.core.scale.setScalar(.15*Math.max(.01,1-f*1.7));e.core.material.opacity=1-f;
    e.ring.scale.setScalar(1+p*(e.explosive?3.9:1.9));e.ring.material.opacity=.85*(1-f);
    e.smoke.position.y=.18+f*(e.wet?.32:.65);
-   e.smoke.scale.setScalar(1+f*(e.explosive?3:1.2));
+   const plume=1+f*(e.explosive?3:1.2);e.smoke.scale.set(.19*plume,.14*plume,.19*plume);
    e.smoke.material.opacity=(e.wet?.42:.48)*(1-f);
    for(let i=0;i<e.sparks.length;i++){
     const a=i*2.399+(e.to.x*13+e.to.y)*.1,rad=f*(.35+(i%3)*.11);
