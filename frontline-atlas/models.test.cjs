@@ -14,9 +14,9 @@ test('terrain rendering builds a solid outer floor, faceted rock meshes and alig
  assert.doesNotThrow(()=>v.setState(s));
  const floor=v.backdrop.children.find(o=>o.isMesh&&o.scale.x>=100&&o.scale.z>=100);
  assert(floor,'background should contain a real land-colored floor');
- const crags=v.tileGroup.children.filter(o=>o.isMesh&&o.geometry.type==='BufferGeometry');
+ const crags=[];v.tileGroup.traverse(o=>{if(o.isMesh&&o.geometry.type==='BufferGeometry')crags.push(o);});
  assert(crags.length>0,'mountain and hill tiles should contain faceted ridge geometry');
- assert(v.tileGroup.children.some(o=>o.isMesh&&o.position.y===.019),'road center markings should be rendered');
+ const roadMarks=[];v.tileGroup.traverse(o=>{if(o.isMesh&&o.position.y===.019)roadMarks.push(o);});assert(roadMarks.length>0,'road center markings should be rendered');
 });
 
 test('toy attic uses one seamless felt-colored ground at exactly the game-board elevation',()=>{
@@ -30,7 +30,7 @@ test('toy attic uses one seamless felt-colored ground at exactly the game-board 
  const t=s.tiles.find(t=>t.terrain==='plain'&&!t.facility&&!t.path&&!t.pad);
  assert(t,'a plain tile must exist');
  const x=t.x-s.w/2+.5,z=t.y-s.h/2+.5;
- const tile=v.tileGroup.children.find(o=>o.isMesh&&o.position.x===x&&o.position.y===-.25&&o.position.z===z);
+ let tile=null;v.tileGroup.traverse(o=>{if(!tile&&o.isMesh&&o.position.x===x&&o.position.y===-.25&&o.position.z===z)tile=o;});
  assert(tile,'plain tile should be rendered');
  assert.equal(tile.material.color.getHex(),ground.material.color.getHex(),'toy floor and tile must be the same tone');
  assert.equal(v.fogHiddenMat.transparent,true,'unexplored tiles should tint rather than replace the floor color');
@@ -40,7 +40,7 @@ test('toy decor is sparse, rotated, varied and coordinated instead of repeated o
  const s=A.make(A.missions.find(m=>m.biome==='toy')),v=Object.create(context.window.AtlasView.prototype);
  Object.assign(v,{scene:new T.Scene(),tileGroup:new T.Group(),unitGroup:new T.Group(),markGroup:new T.Group(),fogGroup:new T.Group(),backdrop:new T.Group(),effects:[],animations:[],groups:new Map(),labelsMap:new Map(),labels:{innerHTML:''},renderer:null,motion:false,cameraUpdate(){},sync(){}});
  v.scene.background=new T.Color(0x8ba9b4);v.setState(s);
- const props=v.tileGroup.children.filter(o=>o.userData.toyProp!==undefined);
+ const props=[];v.tileGroup.traverse(o=>{if(o.userData.toyProp!==undefined)props.push(o);});
  const ruins=s.tiles.filter(t=>t.terrain==='ruins');
  assert(props.length>1,'at least two props should be placed');
  assert(props.length<ruins.length/5,'props should appear in fewer than one fifth of ruins cells');

@@ -1,3 +1,23 @@
+# Frontline Atlas v9.6 — Worldcraft: Mountains, Harbors & Atmosphere
+
+## The mountains are finally mountains
+Highland Storm's ten campaigns now use a **continuous heightfield** instead of a level plane surrounded by mountain props. The road rises across multiple broad ridges and a winding valley, and real hill surfaces have shared corner elevations. Mountain forts, units, warning zones and tactical overlays follow the same elevated surface, with a roughly 4–6 unit total height range. Nearby terrain can block line-of-sight, serious uphill movement costs more, and firing from substantially higher terrain gains +1 range. An alpine landscape mesh extends the geometry beyond the playable board, while the free-fly camera keeps at least 1.35 units above the local mountainside and focuses on the actual height of selected units.
+
+## Bigger naval battlefields
+The 32 naval-compatible maps now feature wider and more connected open-water regions; coastal and island theaters are roughly half or more ocean with land approaches and objective roads retained. Ocean environments have coastal surf, gentle water-pattern textures, navigational buoys, wooden docks, cargo yards, cranes, port warehouses, and a lighthouse. Naval models trail small animated foam wakes when ambience is on.
+
+## Biomes, materials, sky & models
+- Bluewater, snow, mountains, desert, grasslands and cityscapes now have a large **vertex-gradient sky dome** and stylized sun, replacing the solid-color outdoor horizon.
+- Every outdoors biome receives authored, sparse details specific to its setting: urban blocks and streetlamps, snowy huts and drifts, alpine shelters and road guard posts, desert cliffs and brush, coastal decking, and rural farms/fences.
+- A tiny generated texture atlas (32×32 texels per material family) adds subtle roughness/grain/wave variation to road, stone, grass and sea colors without external assets. The toy attic retains its clean uniform felt floor.
+- Naval hulls have deck railings, portholes, extra mounts and navigational lights. Armor receives additional plating and lights, aircraft have colored navigation lights, and specialized infantry get clearer equipment.
+- The movement/attacks/research/campaign progression remain the same outside new tactical altitude calculations, and operator-mode saves remain on the v3 storage key.
+
+## Verification
+`node --test *.test.cjs` in `frontline-atlas/`. Added `environment.test.cjs` coverage for alpine height/raycasting, sea navigability, sky gradient, terrain meshes and detailed unit models. Software fallback remains available; the sky dome uses background color when running without WebGL.
+
+---
+
 # Frontline Atlas v9.5 — Free-flight camera
 
 The previous camera rotated around a central pivot with an orthographic projection. The entire navigation layer has been replaced by a **real perspective camera located in 3D world space**. Mouse look changes only the camera's heading and pitch; movement translates the camera itself, not the terrain or an artificial orbit target.
