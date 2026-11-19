@@ -460,25 +460,36 @@ makeToyRoom(s){
  const roof=box(g,0xd8b882,fx+.06,2.87,fz,1.3,.18,1.04);roof.rotation.z=.09;
 }
 makeAlpineSurround(s){
- const vertices=[],uv=[],w=s.w,h=s.h,step=1.5;
- const loX=-15,hiX=w+15,loY=-15,hiY=h+15;
- const push=(x,y)=>{
-  const worldX=x-w/2+.5,worldZ=y-h/2+.5,ht=A.groundHeight(s,x,y)-.46;
-  vertices.push(worldX,ht,worldZ);uv.push(x*.09,y*.09);
- };
- for(let y=loY;y<hiY;y+=step)for(let x=loX;x<hiX;x+=step){
-  const a=[x,y],b=[Math.min(hiX,x+step),y],d=[Math.min(hiX,x+step),Math.min(hiY,y+step)],e=[x,Math.min(hiY,y+step)];
-  for(const p of [a,e,d,a,d,b])push(...p);
+ // Outboard square cliffs, not rolling curved terrain; mist rests BELOW the playable summit.
+ const g=this.backdrop,w=s.w,h=s.h;
+ for(let y=-2;y<=h+1;y++){
+  for(const x of [-2,-1,w,w+1]){
+   const height=A.groundHeight(s,x,y),wx=x-w/2+.5,wz=y-h/2+.5;
+   box(g,(x+y)%3===0?0x637e79:0x6f8981,wx,(height-3.2)*.5,wz,1.01,height+3.2,1.01);
+   if((x+y*3)%8===0){
+    const p=crag(g,0x8eaaa0,wx,height+.01,wz,.62,.31,.66,(x+y+50)%5);p.rotation.y=.25;
+   }
+  }
  }
- const geo=new T.BufferGeometry();geo.setAttribute('position',new T.Float32BufferAttribute(vertices,3));geo.setAttribute('uv',new T.Float32BufferAttribute(uv,2));geo.computeVertexNormals();
- const m=new T.Mesh(geo,terrainMaterial(0x7e9990,'mountain'));
- m.receiveShadow=true;m.castShadow=false;m.userData.alpineSkirt=true;this.backdrop.add(m);
- // Valleys, ridges, and elevated pine stands extend beyond the playable grid.
- for(let i=0;i<36;i++){
-  const angle=i*Math.PI*2/36,x=Math.cos(angle)*(w/2+5.8),z=Math.sin(angle)*(h/2+5.8);
-  const tx=x+w/2-.5,ty=z+h/2-.5,elevation=A.groundHeight(s,tx,ty);
-  if(i%3===0){const rock=crag(this.backdrop,i%2?0x6d8281:0x9ea9a3,x,elevation-.30,z,2.2,1.4+(i%4)*.26,2.6,i%5);rock.rotation.y=i*.22;}
-  else if(i%2===0){const g=new T.Group();g.position.set(0,elevation,0);this.backdrop.add(g);pine(g,x,z,i,elevation>4.2);}
+ for(let x=0;x<w;x++){
+  for(const y of [-2,-1,h,h+1]){
+   const height=A.groundHeight(s,x,y),wx=x-w/2+.5,wz=y-h/2+.5;
+   box(g,(x*7+y)%5===0?0x5f7b75:0x718e86,wx,(height-3.2)*.5,wz,1.01,height+3.2,1.01);
+  }
+ }
+ // Broad, low cloud banks make the terrain feel like a peak above the clouds.
+ for(let i=0;i<23;i++){
+  const angle=i*2.399,rad=Math.max(w,h)*.52+2+(i%4)*2.5;
+  const x=Math.cos(angle)*rad,z=Math.sin(angle)*rad;
+  const cloud=ball(g,0xdce9ed,x,-1.35+(i%3)*.16,z,2.8+(i%4)*.75,.25,1.9+(i%3)*.6);
+  cloud.material=new T.MeshBasicMaterial({color:0xe1eff3,transparent:true,opacity:.54,depthWrite:false});
+ }
+ // Monumental distant mountains have jagged silhouettes; playable ground remains square.
+ for(let i=0;i<20;i++){
+  const angle=i*Math.PI*2/20,rad=25+(i%4)*2;
+  const x=Math.cos(angle)*rad,z=Math.sin(angle)*rad;
+  const hgt=5.5+(i%5)*1.45,peak=crag(g,i%3===0?0xb3bec0:0x668482,x,-2.9,z,5+(i%3),hgt,4+(i%4),i%5);
+  peak.rotation.y=i*.27;
  }
 }
 makeHarbor(s){
@@ -516,7 +527,7 @@ makeHarbor(s){
 makeBackdrop(s){const b=s.mission.biome,seed=s.mission.seed||1,isToy=b==='toy',snow=b==='snow',high=b==='mountain',urban=b==='urban',desert=b==='desert';
  const land=(b==='coast'||b==='islands')?0x397d8a:(this.groundColor||TOY_FELT);
  // A real terrain-colored world beneath the board prevents the sky from appearing as the floor.
- const floor=box(this.backdrop,b==='mountain'?0x7895a9:land,0,b==='mountain'?-3.255:-.255,0,125,.5,115);if(!isToy)floor.material=terrainMaterial(land,(b==='coast'||b==='islands')?'water':b);if(isToy){this.makeToyRoom(s);return;}skyDome(this.backdrop,s);if(b==='mountain')this.makeAlpineSurround(s);if(b==='coast'||b==='islands')this.makeHarbor(s);
+ const floor=box(this.backdrop,b==='mountain'?0x7895a9:land,0,b==='mountain'?-3.255:-.255,0,125,.5,115);if(!isToy)floor.material=terrainMaterial(b==='mountain'?0x7895a9:land,(b==='coast'||b==='islands')?'water':b);if(isToy){this.makeToyRoom(s);return;}skyDome(this.backdrop,s);if(b==='mountain')this.makeAlpineSurround(s);if(b==='coast'||b==='islands')this.makeHarbor(s);
  for(let i=0;i<55;i++){const a=i/55*Math.PI*2,range=18+(i%6)*2.4,x=Math.cos(a)*range,z=Math.sin(a)*range;
   if(high||snow||desert)crag(this.backdrop,high?0x627c78:snow?0xb4c5c8:0xbda17c,x,-.49,z,1.5+(i%4),.35+(i%5)*.17,1.4+(i%3),i%5);
   else if((b==='coast'||b==='islands')&&i%4===0){crag(this.backdrop,0x689486,x,-.23,z,2.4+(i%3),.48+(i%2)*.32,2.8,i%5);if(i%3===0)pine(this.backdrop,x+.25,z-.2,i,false);}
