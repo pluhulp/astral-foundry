@@ -63,18 +63,43 @@ test('every active naval hull has physical geometry for multiple independent wea
  }
 });
 
-test('new tactical camera converts pixels into modest world movement and centers on a selected unit',()=>{
+test('camera is perspective and changes view direction without orbiting its position around the terrain',()=>{
  const V=context.window.AtlasView,v=Object.create(V.prototype);
- Object.assign(v,{state:{w:24,h:18},w:1100,h:720,angle:0,tilt:1.05,zoom:1.1,pan:{x:0,y:0},cameraUpdate(){}});
- v.panByPixels(90,0);
- assert(v.pan.x>.5&&v.pan.x<7,'90 pixels should move a few tiles, not the full map');
- assert(Math.abs(v.pan.y)<.1);
- v.panByPixels(0,80);
- assert(v.pan.y<-.5&&v.pan.y>-8);
- v.centerOn(8,8);
- assert(Math.abs(v.pan.x-(24/2-8-.5))<.001);
- assert(Math.abs(v.pan.y-(8-18/2+.5))<.001);
+ const camera=new T.PerspectiveCamera(42,1,.12,240);
+ Object.assign(v,{state:{w:24,h:18},w:1100,h:720,camera,eye:new T.Vector3(-18,19,22),yaw:2.5,pitch:-.6,cameraEase:null,dirty:false});
+ v.cameraUpdate(true);
+ const initial=camera.position.clone(),forward=new T.Vector3();camera.getWorldDirection(forward);
+ v.lookBy(-.4,.1);v.cameraUpdate(true);
+ const rotated=new T.Vector3();camera.getWorldDirection(rotated);
+ assert.equal(camera.isPerspectiveCamera,true);
+ assert(camera.position.distanceTo(initial)<.000001,'looking around must never orbit camera around the board');
+ assert(rotated.distanceTo(forward)>.3,'free-look must visibly rotate view direction');
 });
+test('freeflight translates actual camera coordinates, flies forward, rises and focuses a unit',()=>{
+ const V=context.window.AtlasView,v=Object.create(V.prototype);
+ Object.assign(v,{state:{w:24,h:18},w:1100,h:720,eye:new T.Vector3(-18,19,22),yaw:2.5,pitch:-.6,flightSpeed:9,keys:new Set(),flightVelocity:new T.Vector3(),flightTick:0,cameraUpdate(){}});
+ const initial=v.eye.clone();
+ v.panByPixels(90,0);assert(v.eye.distanceTo(initial)>.5&&v.eye.distanceTo(initial)<6,'mouse dragging physically translates the camera');
+ v.setKey('w',true);v.flightStep(1000);v.flightStep(1050);
+ assert(v.eye.distanceTo(initial)>1);
+ v.setKey('w',false);
+ const prior=v.eye.y;v.setKey('e',true);v.flightStep(1100);
+ assert(v.eye.y>prior,'E rises vertically during free flight');
+ v.setKey('e',false);v.releaseKeys();assert.equal(v.keys.size,0);
+ v.focusPoint(8,8);
+ const target=new T.Vector3(8-12+.5,.45,8-9+.5);
+ const direction=target.clone().sub(v.eye).normalize();
+ assert(v.direction().distanceTo(direction)<.001,'focus must aim from a new physical position toward the selected unit');
+});
+test('scroll dolly uses camera forward direction, clamps ground collision and protects world bounds',()=>{
+ const V=context.window.AtlasView,v=Object.create(V.prototype);
+ Object.assign(v,{state:{w:24,h:18},eye:new T.Vector3(0,2,8),yaw:Math.PI,pitch:-.8,cameraUpdate(){}});
+ const before=v.eye.clone();v.dolly(5);assert(v.eye.distanceTo(before)>2);
+ v.dolly(800);assert(v.eye.y>=1.35&&v.eye.y<=85);
+ v.fly(0,0,1,600);assert(v.eye.y<=85);
+ v.fly(1,0,0,600);assert(Math.abs(v.eye.z)<=18*1.9);
+});
+
 test('siege artillery warnings display five clearly marked threatened tiles per battery',()=>{
  const V=context.window.AtlasView,v=Object.create(V.prototype),s=A.make(A.missions.find(m=>m.type==='battery'));
  Object.assign(v,{state:s,markGroup:new T.Group(),selectedId:null});
