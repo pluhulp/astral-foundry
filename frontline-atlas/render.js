@@ -55,12 +55,50 @@ function addToyProp(parent,s,t){
  }
 }
 class View{
-constructor(canvas,labels){this.canvas=canvas;this.labels=labels;this.scene=new T.Scene();this.scene.background=new T.Color(0x8ba9b4);this.scene.fog=new T.Fog(0xa9bac1,36,85);this.scene.add(new T.HemisphereLight(0xffffff,0x687964,2));let sun=new T.DirectionalLight(0xffefd2,2.5);sun.position.set(-8,16,10);this.scene.add(sun);this.camera=new T.OrthographicCamera(-9,9,7,-7,.1,100);this.angle=-.55;this.tilt=.85;this.zoom=1;this.pan={x:0,y:0};this.backdrop=new T.Group();this.scene.add(this.backdrop);this.groups=new Map();this.labelsMap=new Map();this.ray=new T.Raycaster();this.pointer=new T.Vector2();this.animations=[];this.effects=[];this.last=0;this.motion=true;this.dirty=true;this.staticFaces=null;this.metrics={frames:0,renderMs:0,staticBuilds:0};this.selectedId=null;
+constructor(canvas,labels){this.canvas=canvas;this.labels=labels;this.scene=new T.Scene();this.scene.background=new T.Color(0x8ba9b4);this.scene.fog=new T.Fog(0xa9bac1,36,85);this.scene.add(new T.HemisphereLight(0xffffff,0x687964,2));let sun=new T.DirectionalLight(0xffefd2,2.5);sun.position.set(-8,16,10);this.scene.add(sun);this.camera=new T.OrthographicCamera(-9,9,7,-7,.1,100);this.angle=-.65;this.tilt=1.08;this.zoom=1.10;this.pan={x:0,y:0};this.backdrop=new T.Group();this.scene.add(this.backdrop);this.groups=new Map();this.labelsMap=new Map();this.ray=new T.Raycaster();this.pointer=new T.Vector2();this.animations=[];this.effects=[];this.last=0;this.motion=true;this.dirty=true;this.staticFaces=null;this.metrics={frames:0,renderMs:0,staticBuilds:0};this.selectedId=null;
 try{this.renderer=new T.WebGLRenderer({canvas,antialias:true,powerPreference:'low-power'});this.renderer.setPixelRatio(Math.min(devicePixelRatio,1.25));this.renderer.outputColorSpace=T.SRGBColorSpace;this.renderer.toneMapping=T.ACESFilmicToneMapping;this.renderer.toneMappingExposure=1.1;this.renderer.shadowMap.enabled=true;this.renderer.shadowMap.type=T.PCFSoftShadowMap;sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);Object.assign(sun.shadow.camera,{left:-22,right:22,top:22,bottom:-22});sun.shadow.bias=-.002;this.software=false;}catch(e){this.software=true;let replacement=document.createElement('canvas');replacement.id=canvas.id;canvas.replaceWith(replacement);this.canvas=replacement;this.ctx=replacement.getContext('2d');}
 this.tileGroup=new T.Group();this.unitGroup=new T.Group();this.markGroup=new T.Group();this.fogGroup=new T.Group();this.scene.add(this.tileGroup,this.unitGroup,this.markGroup,this.fogGroup);this.resize();this.bind();this.resizeObserver=new ResizeObserver(()=>this.resize());this.resizeObserver.observe(this.canvas.parentElement);requestAnimationFrame(t=>this.frame(t));}
-bind(){let down=null,drag=false;this.canvas.addEventListener('pointerdown',e=>{down={x:e.clientX,y:e.clientY,angle:this.angle,tilt:this.tilt,px:this.pan.x,py:this.pan.y,button:e.button};drag=false;this.canvas.setPointerCapture(e.pointerId);});this.canvas.addEventListener('pointermove',e=>{if(down&&Math.hypot(e.clientX-down.x,e.clientY-down.y)>5){drag=true;if(e.shiftKey||down.button===2){const scale=26/Math.max(this.w,this.h)/this.zoom;const dx=(e.clientX-down.x)*scale,dy=(e.clientY-down.y)*scale;this.pan.x=down.px+dx*Math.cos(this.angle)+dy*Math.sin(this.angle);this.pan.y=down.py+dx*Math.sin(this.angle)-dy*Math.cos(this.angle);}else{this.angle=down.angle+(e.clientX-down.x)*.005;this.tilt=Math.max(.54,Math.min(1.2,down.tilt+(e.clientY-down.y)*.003));}this.cameraUpdate();}else if(!down){let t=this.pick(e);if(t&&this.onHover)this.onHover(t);}});this.canvas.addEventListener('pointerup',e=>{if(!drag&&this.onClick){let t=this.pick(e);if(t)this.onClick(t,e);}down=null;});this.canvas.addEventListener('pointercancel',()=>down=null);this.canvas.addEventListener('wheel',e=>{e.preventDefault();this.zoom=Math.max(.65,Math.min(2.5,this.zoom*Math.exp(-e.deltaY*.0007)));this.cameraUpdate();},{passive:false});this.canvas.addEventListener('contextmenu',e=>e.preventDefault());}
+panByPixels(dx,dy){
+ // Orthographic pixel-to-world ratio: an 80px drag should move only a few tiles, never 80.
+ const size=(this.state?Math.max(this.state.w,this.state.h)*.58:15)/Math.max(.6,this.zoom);
+ const scale=2*size/Math.max(300,this.h),angle=this.angle;
+ const elevation=Math.atan2(Math.sin(this.tilt)*45,35);
+ const vx=dx*scale,vy=dy*scale/Math.max(.55,Math.sin(elevation));
+ this.pan.x+=vx*Math.cos(angle)+vy*Math.sin(angle);
+ this.pan.y+=vx*Math.sin(angle)-vy*Math.cos(angle);
+ if(this.state){const limit=this.state.w*.58;this.pan.x=Math.max(-limit,Math.min(limit,this.pan.x));const limitY=this.state.h*.58;this.pan.y=Math.max(-limitY,Math.min(limitY,this.pan.y));}
+ this.cameraUpdate();
+}
+centerOn(x,y){if(!this.state)return;this.pan.x=this.state.w/2-x-.5;this.pan.y=y-this.state.h/2+.5;this.cameraUpdate();}
+bind(){
+ let down=null,drag=false;
+ this.canvas.addEventListener('pointerdown',e=>{
+  if(e.button>2)return;
+  down={x:e.clientX,y:e.clientY,lastX:e.clientX,lastY:e.clientY,mode:e.button===2||e.shiftKey?'orbit':'pan'};
+  drag=false;this.canvas.setPointerCapture?.(e.pointerId);
+ });
+ this.canvas.addEventListener('pointermove',e=>{
+  if(!down){if(this.onHover){const t=this.pick(e);if(t)this.onHover(t);}return;}
+  const dx=e.clientX-down.lastX,dy=e.clientY-down.lastY;
+  down.lastX=e.clientX;down.lastY=e.clientY;
+  if(Math.hypot(e.clientX-down.x,e.clientY-down.y)>4)drag=true;
+  if(!drag)return;
+  if(down.mode==='pan')this.panByPixels(dx,dy);
+  else{this.angle+=dx*.004;this.tilt=Math.max(.60,Math.min(1.36,this.tilt+dy*.0025));this.cameraUpdate();}
+ });
+ this.canvas.addEventListener('pointerup',e=>{if(down&&!drag&&down.mode==='pan'&&this.onClick){const t=this.pick(e);if(t)this.onClick(t,e);}down=null;});
+ this.canvas.addEventListener('pointercancel',()=>down=null);
+ this.canvas.addEventListener('wheel',e=>{
+  e.preventDefault();
+  const old=this.zoom;this.zoom=Math.max(.70,Math.min(3.1,this.zoom*Math.exp(-e.deltaY*.0009)));
+  const rect=this.canvas.getBoundingClientRect(),offsetX=e.clientX-rect.left-rect.width/2,offsetY=e.clientY-rect.top-rect.height/2;
+  const ratio=this.zoom/old;
+  this.panByPixels(-offsetX*(ratio-1),-offsetY*(ratio-1));
+ },{passive:false});
+ this.canvas.addEventListener('contextmenu',e=>e.preventDefault());
+}
 resize(){let r=this.canvas.parentElement.getBoundingClientRect();this.w=r.width;this.h=r.height;if(this.renderer)this.renderer.setSize(this.w,this.h,false);else{this.canvas.width=this.w;this.canvas.height=this.h;}this.cameraUpdate();}
-cameraUpdate(){const target={angle:this.angle,tilt:this.tilt,zoom:this.zoom,x:this.pan.x,y:this.pan.y};if(!this.cameraEase)this.cameraEase={...target};let moving=false;for(const key of Object.keys(target)){const error=target[key]-this.cameraEase[key];if(Math.abs(error)>.001){this.cameraEase[key]+=error*.24;moving=true;}else this.cameraEase[key]=target[key];}this.cameraAnimating=moving;const v=this.cameraEase;let size=(this.state?Math.max(this.state.w,this.state.h)*.58:15)/v.zoom,ratio=this.w/this.h;this.camera.left=-size*ratio;this.camera.right=size*ratio;this.camera.top=size;this.camera.bottom=-size;this.camera.position.set(Math.sin(v.angle)*35,Math.sin(v.tilt)*40,Math.cos(v.angle)*35);this.camera.lookAt(-v.x,0,v.y);this.camera.updateProjectionMatrix();this.camera.updateMatrixWorld();this.staticFaces=null;this.dirty=true;}
+cameraUpdate(){const target={angle:this.angle,tilt:this.tilt,zoom:this.zoom,x:this.pan.x,y:this.pan.y};if(!this.cameraEase)this.cameraEase={...target};let moving=false;for(const key of Object.keys(target)){const error=target[key]-this.cameraEase[key];if(Math.abs(error)>.001){this.cameraEase[key]+=error*.44;moving=true;}else this.cameraEase[key]=target[key];}this.cameraAnimating=moving;const v=this.cameraEase;let size=(this.state?Math.max(this.state.w,this.state.h)*.58:15)/v.zoom,ratio=this.w/this.h;this.camera.left=-size*ratio;this.camera.right=size*ratio;this.camera.top=size;this.camera.bottom=-size;this.camera.position.set(Math.sin(v.angle)*35,Math.sin(v.tilt)*45,Math.cos(v.angle)*35);this.camera.lookAt(-v.x,0,v.y);this.camera.updateProjectionMatrix();this.camera.updateMatrixWorld();this.staticFaces=null;this.dirty=true;}
 clear(group){while(group.children.length)group.remove(group.children[0]);}
 setState(s){this.staticFaces=null;this.dirty=true;this.animations=[];this.effects.forEach(e=>{e.el?.remove();this.scene.remove(e.fx);});this.effects=[];this.state=s;this.clear(this.tileGroup);this.clear(this.unitGroup);this.clear(this.backdrop);this.groups.clear();this.labels.innerHTML='';this.labelsMap.clear();let biome=s.mission.biome;this.scene.background.set(({grass:0x8eb4c0,desert:0xe1b47f,snow:0xa3bbcc,urban:0x899ead,coast:0x8cb7bf,islands:0x8dbfba,toy:0xa58c78,mountain:0x8fa7bd})[biome]||0x91a9b4);this.scene.fog=new T.Fog(this.scene.background,38,78);let palette=biome==='desert'?[0xbca678,0xc7b486,0xd4c296]:biome==='snow'?[0xd7dfd7,0xcad6d0,0xe5e9dd]:biome==='urban'?[0x657581,0x73818c,0x87949b]:biome==='coast'?[0xbcae7d,0xcbbb8c,0xad9f72]:biome==='islands'?[0x4b8c70,0x619878,0x74aa87]:biome==='toy'?[TOY_FELT,TOY_FELT,TOY_FELT]:biome==='mountain'?[0x6e8a82,0x819b90,0xa5b6a1]:[0x60866c,0x6d9379,0x80a28a];this.groundColor=palette[1];this.fogSeenMat?.dispose();this.fogHiddenMat?.dispose();this.fogSeenMat=new T.MeshBasicMaterial({color:0x14241e,transparent:true,opacity:.13,depthWrite:false});this.fogHiddenMat=new T.MeshBasicMaterial({color:0x14241e,transparent:true,opacity:.34,depthWrite:false});this.makeBackdrop(s);
 
