@@ -649,7 +649,7 @@ events(){
   const distance=Math.hypot(ev.to.x-ev.from.x,ev.to.y-ev.from.y);
   const travel=this.motion?Math.min(490,Math.max(135,105+distance*23)):25;
   const burst=this.motion?explosive?690:360:180;
-  this.effects.push({kind:'shot',...ev,fx,tracer,blast,flame,core,ring,smoke,sparks,from,to,wet,explosive,el,start:now,travel,burst,duration:travel+burst,impacted:false});
+  this.effects.push({...ev,kind:'shot',fx,tracer,blast,flame,core,ring,smoke,sparks,from,to,wet,explosive,el,start:now,travel,burst,duration:travel+burst,impacted:false});
   // Limit the expensive simultaneous active particle systems during 4-battery shellstorms.
   while(this.effects.length>54){const stale=this.effects.shift();stale.el?.remove();if(stale.fx)this.scene.remove(stale.fx);}
  }
