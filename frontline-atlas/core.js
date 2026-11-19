@@ -290,11 +290,13 @@ function initializeSpecial(s){
  if(m.type==='battery'||m.type==='counterbattery'){
    s.batteryIDs=[];s.warningZones=[];s.batteryWave=0;
    for(let i=0;i<4;i++){
-     const x=m.type==='battery'?w-5-(i%2)*2:3+(i%2)*2;
-     const y=mid-5+Math.floor(i/2)*9;
-     const t=tile(s,x,y);t.terrain='road';t.path=false;
+     const target={x:m.type==='battery'?w-4-(i%2)*3:3+(i%2)*2,y:mid-6+Math.floor(i/2)*11};
+     const candidates=s.tiles.filter(t=>t.terrain!=='void'&&t.terrain!=='water'&&!t.facility&&!t.pad&&!at(s,t.x,t.y)&&
+       (m.type==='battery'?t.x>=w-10:t.x<=8)&&t.y>=2&&t.y<s.h-2);
+     candidates.sort((a,b)=>dist(a,target)-dist(b,target)||a.x-b.x||a.y-b.y);
+     const t=candidates[0];if(!t)continue;t.terrain='road';t.path=false;
      // Heavy ground emplacements are static but retain attack actions.
-     const u=safeSpawn(s,'mlrs__4',m.type==='battery'?1:0,x,y,{battery:true,anchored:true,entrenched:true,sentry:true});
+     const u=safeSpawn(s,'mlrs__4',m.type==='battery'?1:0,t.x,t.y,{battery:true,anchored:true,entrenched:true,sentry:true});
      if(u){u.maxHp=Math.round(u.maxHp*1.5);u.hp=u.maxHp;s.batteryIDs.push(u.id);}
    }
  }
