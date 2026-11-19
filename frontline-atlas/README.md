@@ -1,3 +1,24 @@
+# Frontline Atlas v9.8 — Fleet Tactics & Action-Economy Balance
+
+## The navy is still devastating—but needs combined arms
+- Naval weapon **base powers remain identical** against other ships. Against Infantry or Armor on shore, naval damage uses a modest **0.84 multiplier**. Aircraft are unaffected. Existing range, movement, gun mounts, loadouts and player ship-to-ship damage are unchanged.
+- Meridian ships gain a small 10% **coordinated fire-control bonus against player vessels only when another friendly warship within five tiles independently spots the target**. Kill or separate the escort and the bonus disappears.
+- Enemy commanders now check every operational mount before firing, plan movements around how many batteries can reach the enemy (not just the first long-range gun), and select naval targets as priority. Enemy destroyers can move *then* fire all three guns. Immobilized ships can still shoot unless their ammunition or guns are genuinely exhausted.
+- Multi-gun land AI also uses **salvo/autoloader abilities** for extra legal shots when the weapon system has spent guns with spare ammunition. All actions obey normal ammunition/cooldown limits.
+- Naval maps now start with 3–5 enemy vessels as a meaningful combined-arms task group, plus the normal budgeted reinforcement logic. That eliminates the two-opponent-ship problem. A previously broken desert interception mission now has actual connected sea and five ship escorts: **33 naval-compatible missions** in total.
+
+## Flagships are bosses, not glass boats
+- Flagship command compartments start at **1.6× standard carrier health**; this is specific to flagship missions, not a global buff to carriers.
+- While a separate allied Navy unit is alive within four tiles, an **escort screen reduces incoming damage by 24%**. Sinking or pulling those escorts away removes the protection immediately. The unit panel explicitly says `ESCORT SCREEN −24% INCOMING` or `ESCORT SCREEN LOST`.
+- A lone Leviathan firing all four batteries can damage the flagship significantly, but should not immediately complete the mission. Fleet coordination is now more important than an instant broadside.
+
+## Verification
+`node --test *.test.cjs` under `frontline-atlas/` covers the existing campaigns and new `balance.test.cjs` scenarios for ship/shore damage, normal player naval damage, fleet synergy, escort-screen removal, flagship boss durability, naval map generation, full-mount AI turns and land autoloader abilities.
+
+Player progression remains on the same v3 save format, operator mode remains available, and the v9.7 camera, mountain terrain and animations are unchanged.
+
+---
+
 # Frontline Atlas v9.7 — Combat Feel & Square Cliffside Terrain
 
 ## Combat animation priorities
