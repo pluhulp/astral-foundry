@@ -539,8 +539,12 @@ function attackChoice(s,u,visible,focus){
 }
 function fireTactically(s,u,focus){
  let fired=false;
- for(let shot=0;shot<D[u.type].weapons.length&&!u.fired;shot++){
+ for(let shot=0;shot<D[u.type].weapons.length+2;shot++){
   const visible=alive(s,0).filter(v=>!v.carried&&visibleTo(s,v,1));
+  if(u.fired){
+    if(D[u.type].ability.kind==='broadside'&&visible.length&&!abilityError(s,u))useAbility(s,u);
+    else break;
+  }
   const choice=attackChoice(s,u,visible,focus);if(!choice)break;
   selectWeapon(u,choice.i);
   const k=D[u.type].ability.kind;
@@ -631,7 +635,7 @@ function ai(s,u){
  if(['fleetpatch','sortie','screen'].includes(kind)){
   const hurtNavy=friends.some(v=>D[v.type].branch==='Navy'&&dist(u,v)<=2&&(v.disabled||v.hp<v.maxHp*.70));
   const aircraft=friends.some(v=>D[v.type].branch==='Air'&&dist(u,v)<=4&&(v.hp<v.maxHp*.82||v.ammo.some((n,i)=>n<D[v.type].weapons[i].capacity)));
-  const threatened=visible.some(v=>D[v.type].branch==='Navy'&&dist(v,u)<=8);
+  const threatened=visible.some(v=>D[v.type].branch==='Navy'&&dist(v,u)<=8)&&friends.some(v=>v!==u&&D[v.type].branch==='Navy'&&dist(v,u)<=2&&(v.hp<v.maxHp*.88||['carrier','battleship'].includes(D[v.type].family)));
   if(((kind==='fleetpatch'&&hurtNavy)||(kind==='sortie'&&aircraft)||(kind==='screen'&&threatened))&&!abilityError(s,u)){
    useAbility(s,u);if(u.fired)return;
   }
@@ -641,11 +645,12 @@ function ai(s,u){
   const station=friends.find(v=>has(v,'resupply')&&v!==u)||tile(s,s.enemyHome.x,s.enemyHome.y);
   tacticalPosition(s,u,station,visible,plan.contacts);reload(s,u);return;
  }
+ if(kind==='silent'&&u.hp<u.maxHp*.5&&visible.some(v=>D[v.type].branch==='Navy')&&!abilityError(s,u)){useAbility(s,u);return;}
  if(kind==='harass'&&visible.length&&!abilityError(s,u))useAbility(s,u);
  if(kind==='evasion'&&visible.length>=2&&!abilityError(s,u))useAbility(s,u);
  if(kind==='rangefinder'&&visible.some(v=>dist(v,u)>weapon(u).range)&&!abilityError(s,u))useAbility(s,u);
  if(u.escape){
-  const to=[...reach(s,u).values()].filter(p=>p.x<u.x).sort((a,b)=>a.x-b.x||dist(a,{x:3,y:s.h-3})-dist(b,{x:3,y:s.h-3}));
+  const to=[...reach(s,u).values()].filter(p=>p.x<u.x&&p.x>=u.x-3).sort((a,b)=>a.x-b.x||dist(a,{x:3,y:s.h-3})-dist(b,{x:3,y:s.h-3}));
   if(to[0])move(s,u,to[0].x,to[0].y);
   fireTactically(s,u,plan.focus);return;
  }
