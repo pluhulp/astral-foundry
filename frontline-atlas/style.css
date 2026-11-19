@@ -95,3 +95,7 @@
 .camera-controls button{border-radius:5px;min-width:35px;min-height:35px}
 .battle-hint{max-width:min(750px,calc(100vw - 30px));white-space:normal;text-align:center}
 @media(max-width:700px){.camera-controls{right:8px;top:145px;flex-wrap:wrap;max-width:152px}.camera-controls button{min-width:33px;min-height:33px}}
+
+/* v9.8: compact naval boss status, not additional battle clutter */
+.status-chips .fleet-screen{border:1px solid #adac83;background:#4d4930;color:#f1df9e;font-weight:700}
+.status-chips .fleet-exposed{border:1px solid #8e6260;background:#45332e;color:#ddada2;font-weight:700}
