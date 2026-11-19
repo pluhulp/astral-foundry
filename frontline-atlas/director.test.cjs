@@ -39,7 +39,7 @@ test('enemy naval flagships deliberately retreat toward their sea exit',()=>{
 });
 test('rapid aggression earns capped tactical supply without giving enemies free rewards',()=>{
  const s=field(),gun=A.add(s,'superheavy',0,4,4),a=A.add(s,'rifle',1,6,4),b=A.add(s,'rifle',1,6,5);
- a.hp=b.hp=1;s.credits=6;s.killsThisTurn=0;
+ a.hp=b.hp=1;s.side=0;s.credits=6;s.killsThisTurn=0;
  assert(A.attack(s,gun,a));A.selectWeapon(gun,1);assert(A.attack(s,gun,b));
  assert.equal(s.credits,7);assert.equal(s.momentumRewards,1);
 });
