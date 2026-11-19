@@ -606,7 +606,7 @@ function attackChoice(s,u,visible,focus){
   u.weapon=i;
   for(const v of visible)if(v.hp>0&&canAttack(s,u,v)){
    const n=damage(s,u,v),fatal=n>=v.hp;
-   const threat=has(v,'resupply')?26:D[v.type].branch==='Navy'&&D[u.type].branch==='Navy'?18:has(v,'indirect')?20:0;
+   const threat=has(v,'resupply')?26:D[v.type].branch==='Navy'&&D[u.type].branch==='Navy'?52:has(v,'indirect')?20:0;
    const score=Math.min(n,v.hp)*.65+(fatal?80:0)+(v.id===focus?27:0)+threat+(v.courier?90:0)+(v.flagship?80:0);
    if(!best||score>best.score)best={i,target:v,score};
   }
@@ -615,10 +615,10 @@ function attackChoice(s,u,visible,focus){
 }
 function fireTactically(s,u,focus){
  let fired=false;
- for(let shot=0;shot<D[u.type].weapons.length+2;shot++){
+ for(let shot=0;shot<D[u.type].weapons.length+3;shot++){
   const visible=alive(s,0).filter(v=>!v.carried&&visibleTo(s,v,1));
   if(u.fired){
-    if(D[u.type].ability.kind==='broadside'&&visible.length&&!abilityError(s,u))useAbility(s,u);
+    if(['broadside','salvo'].includes(D[u.type].ability.kind)&&visible.length&&!abilityError(s,u))useAbility(s,u);
     else break;
   }
   const choice=attackChoice(s,u,visible,focus);if(!choice)break;
@@ -658,6 +658,50 @@ function goalFor(s,u,visible,contacts){
  const remembered=Object.values(contacts).sort((a,b)=>dist(u,a)-dist(u,b))[0];
  return remembered||s.home;
 }
+// An admiral evaluates a prospective firing position across ALL ready mounts,
+// not just the first gun that happens to reach the target.
+function batteryCoverageAt(s,u,p,targets){
+ let guns=0,weight=0;
+ const moved=p.x!==u.x||p.y!==u.y,indirect=has(u,'indirect');
+ for(let i=0;i<D[u.type].weapons.length;i++){
+  if(u.used[i]||u.ammo[i]<=0)continue;
+  const w=D[u.type].weapons[i];let best=0;
+  for(const v of targets){
+   if(v.hp<=0||v.carried||v.team===u.team)continue;
+   const range=w.range+(u.rangeBoostTurn===s.turn?2:0),d=dist(p,v);
+   if(d<(indirect?2:1)||d>range)continue;
+   if(!indirect&&!lineOfSight(s,p,v))continue;
+   if(indirect&&D[u.type].branch!=='Navy'&&moved&&u.setupTurn!==s.turn)continue;
+   const force=Math.min(v.hp,w.power)*(D[v.type].branch==='Navy'&&D[u.type].branch==='Navy'?1.22:1);
+   best=Math.max(best,force+(v.flagship?12:0));
+  }
+  if(best){guns++;weight+=best;}
+ }
+ return {guns,weight};
+}
+function planNavalBroadside(s,u,visible){
+ if(D[u.type].branch!=='Navy'||u.moved||u.disabled||u.anchored||u.fired||!visible.length)return false;
+ const targets=visible.filter(v=>v.hp>0&&!v.carried);
+ if(!targets.length)return false;
+ const base=batteryCoverageAt(s,u,u,targets),companions=alive(s,1).filter(v=>v.id!==u.id&&D[v.type].branch==='Navy');
+ let best=null;
+ for(const p of reach(s,u).values()){
+  const options=batteryCoverageAt(s,u,p,targets);
+  if(!options.guns||options.guns<base.guns)continue;
+  const screen=companions.some(v=>v.flagship&&dist(v,p)<=4)?12:0;
+  const incoming=tacticalThreat(s,u,p,targets);
+  const score=options.weight+options.guns*15+screen-incoming*.12-(p.cost||0)*.4;
+  if(!best||score>best.score)best={p,options,score};
+ }
+ if(!best)return false;
+ const baseScore=base.weight+base.guns*15-tacticalThreat(s,u,u,targets)*.12;
+ // If one long-range gun works now but three will work after moving, MOVE FIRST.
+ if((best.options.guns>base.guns&&best.score>baseScore+14)||
+    (base.guns===0&&best.options.guns>0&&best.score>baseScore+8)){
+  return move(s,u,best.p.x,best.p.y);
+ }
+ return false;
+}
 function tacticalPosition(s,u,goal,visible,contactHistory){
  if(u.anchored||u.disabled||u.moved||u.fired)return false;
  const movement=[...reach(s,u).values()];
@@ -696,7 +740,7 @@ function tacticalPosition(s,u,goal,visible,contactHistory){
  return false;
 }
 function ai(s,u){
- if(!u||u.hp<=0||u.carried||s.result||u.fired||u.battery)return;
+ if(!u||u.hp<=0||u.carried||s.result||u.fired||u.battery||u.readyTurn>s.turn)return;
  const plan=commandIntel(s),kind=D[u.type].ability.kind,branch=D[u.type].branch;
  if(['scan','sonar'].includes(kind)&&!abilityError(s,u))useAbility(s,u);
  const friends=alive(s,1).filter(v=>!v.carried);
@@ -717,7 +761,7 @@ function ai(s,u){
   }
  }
  if(u.landed){if(u.hp<u.maxHp||u.ammo.some((n,i)=>n<D[u.type].weapons[i].capacity)){u.hp=Math.min(u.maxHp,u.hp+25);u.ammo=D[u.type].weapons.map(w=>w.capacity);}else flight(s,u);return;}
- if(u.disabled||u.ammo.every(n=>n===0)){
+ if(u.ammo.every(n=>n===0)){
   const station=friends.find(v=>has(v,'resupply')&&v!==u)||tile(s,s.enemyHome.x,s.enemyHome.y);
   tacticalPosition(s,u,station,visible,plan.contacts);reload(s,u);return;
  }
@@ -730,6 +774,8 @@ function ai(s,u){
   if(to[0])move(s,u,to[0].x,to[0].y);
   fireTactically(s,u,plan.focus);return;
  }
+ // Use naval movement to bring the secondary guns into range BEFORE firing.
+ if(branch==='Navy'&&visible.length)planNavalBroadside(s,u,visible);
  if(fireTactically(s,u,plan.focus))return;
  if(capture(s,u))return;
  // Entrenched garrisons anchor a front, but engage if a real target enters range.
