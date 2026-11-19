@@ -21,7 +21,7 @@ test('shells fly toward targets and create a shockwave, rising smoke and persist
  assert.equal(v.effects.length,1);const e=v.effects[0];assert.equal(e.kind,'shot');
  assert(e.travel>=150);assert(e.duration>e.travel);
  v.advanceEffects(e.start+e.travel*.50,s);
- assert(e.tracer.position.x>e.from.x&&e.tracer.position.x<e.to.x,'projectile must visibly traverse the gap');
+ assert(e.tracer.position.x>e.fromWorld.x&&e.tracer.position.x<e.toWorld.x,'projectile must visibly traverse the gap');
  assert.equal(e.blast.visible,false);
  v.advanceEffects(e.start+e.travel+30,s);
  assert(e.impacted);assert.equal(e.blast.visible,true);
