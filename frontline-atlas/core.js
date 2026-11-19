@@ -216,7 +216,8 @@ function mountainTier(s,x,y){
   +1.05*Math.sin(u*7.2+seed*.013)+.76*Math.cos(v*8.1+seed*.019)
   +.47*Math.sin(u*4.7+v*5.2+seed*.007)
   -.9*Math.exp(-Math.pow((v-(.50+.09*Math.sin(u*5.2+seed*.004)))/.15,2)));
- return Math.max(0,Math.min(4,Math.floor((raw-.6)/1.12)));
+ const terraces=Math.floor((raw-.6)/1.12),ascendingShelf=Math.floor(3*Math.max(0,x)/Math.max(1,s.w-1));
+ return Math.max(0,Math.min(4,Math.max(terraces,ascendingShelf)));
 }
 function mountainPlatform(s,x,y){return .7+.62*mountainTier(s,x,y);}
 function groundHeight(s,x,y){
