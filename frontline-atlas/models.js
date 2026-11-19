@@ -131,6 +131,53 @@ if(d.branch==='Infantry'){
 }
  if(v===1)for(let side of [-1,1])hullAt(g,c,side*w*.55,.05,-.1,.06,l*.65,.07,1);if(v===2)dish(g,w*.25,.55,0,.13);if(v===3)rack(g,c,0,.3,l*.08,4);if(v===4){hullAt(g,c,0,.22,-l*.32,w*.7,.23,.18);barrel(g,0,.43,-l*.2,.42,.03);}if(v===5)pack(g,0xbfb38f,0,.26,l*.1,w*.7,.24);
 }
+// Finishing passes retain silhouette-first scale and faction readability.
+if(d.branch==='Navy'){
+ const profile={patrol:.72,frigate:1.08,destroyer:1.24,battleship:1.48,landing:.87,sub:1.1,carrier:1.6,gunboat:.85}[f]||1;
+ const beam={patrol:.24,frigate:.29,destroyer:.32,battleship:.43,landing:.42,sub:.2,carrier:.48,gunboat:.34}[f]||.3;
+ if(f!=='sub'){
+  for(const side of [-1,1]){
+   rod(g,0x829693,[side*beam*.43,.25,-profile*.40],[side*beam*.43,.25,profile*.36],.009);
+   for(let i=0;i<5;i++){
+    let zz=-profile*.31+i*profile*.15;
+    rod(g,0x6d8584,[side*beam*.43,.17,zz],[side*beam*.43,.265,zz],.009);
+   }
+  }
+  for(const side of [-1,1])for(let i=0;i<4;i++){
+   ball(g,0xc2c6b4,side*beam*.42,.11,-profile*.26+i*profile*.17,.024,.021,.024);
+  }
+  const mast=f==='carrier'?-.26:-.2;
+  antenna(g,0,.43,mast,.33);
+  ball(g,0xe2c584,-beam*.34,.30,profile*.28,.018,.02,.018);
+  ball(g,0xd26d5c,beam*.34,.30,profile*.28,.018,.02,.018);
+ }
+ if(f==='carrier'){
+  for(let i=0;i<3;i++)box(g,0xf0e0a3,-.02,.365,profile*.31-i*.11,.22,.013,.015);
+  box(g,0x495f66,beam*.36,.35,.1,.15,.21,.26);
+  dish(g,beam*.36,.57,.1,.095);
+ }
+ if(f==='battleship'||f==='destroyer'){
+  for(const side of [-1,1])for(let i=0;i<2;i++){
+   hullAt(g,0x516972,side*beam*.52,.23,profile*(i?-.3:.29),.13,.09,.08);
+   barrel(g,side*beam*.52,.29,profile*(i?-.3:.29),.17,.012);
+  }
+ }
+}
+if(d.branch==='Armor'){
+ // Visible running lights, angular armor plates and stowage identify complete chassis.
+ for(const side of [-1,1]){
+  box(g,side<0?0xe3cb9b:0x8faaa1,side*.13,.245,.32,.07,.043,.03);
+  if(v>=2)box(g,0x566c66,side*.17,.33,-.27,.11,.08,.17);
+ }
+}
+if(d.branch==='Air'){
+ for(const side of [-1,1])ball(g,side<0?0xd46c61:0xaed1ad,side*.16,.15,-.18,.023,.021,.024);
+}
+if(d.branch==='Infantry'){
+ // Distinct squad equipment prevents small figures from reading as missing torsos.
+ if(d.model==='machinegun'||d.model==='mortar')box(g,0x6c8275,-.03,.07,-.27,.24,.13,.2);
+ if(v>=3)box(g,0x9a9e7d,0,.12,-.17,.18,.19,.09);
+}
 g.userData.variant=type;return g;}
 window.AtlasArt={T,A,colors,mat,mesh,box,cylinder,cone,ball,bevel,rod,model,boxGeo,sphereGeo};window.AtlasModels={model};
 })();
