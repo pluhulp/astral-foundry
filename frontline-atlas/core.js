@@ -292,7 +292,7 @@ if(navalMap(m)){
  const ocean=['coast','islands'].includes(m.biome)||m.type==='intercept';
  const fleet=ocean?['patrol','frigate','gunboat','destroyer','sub']:['patrol','gunboat','frigate'];
  for(let i=0;i<fleet.length;i++){
-   const x=w-5-(i%3)*3,y=h-3-Math.floor(i/3)*2,t=tile(s,x,y);
+   const x=w-5-(i%3)*3,y=h-3-Math.floor(i/3),t=tile(s,x,y);
    if(t&&t.terrain==='water'&&!at(s,x,y)){const ship=add(s,fleet[i],1,x,y);ship.entrenched=false;}
  }
 }
