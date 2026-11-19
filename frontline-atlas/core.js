@@ -468,30 +468,199 @@ const cheapest=Math.min(...s.deck.map(id=>D[id].cost));if(!alive(s,0).some(u=>!u
 if(s.turn>60)lose=true;
 if(lose||win){s.result=lose?'defeat':'victory';log(s,lose?'Operation failed.':'Objective secured.');}return s.result;}
 function resetUnit(u){u.moved=u.fired=!!u.protected;u.used=D[u.type].weapons.map(()=>false);u.serviceUsed=Array(D[u.type].serviceSlots).fill(false);}
-function beginEnemy(s){if(s.phase==='deployment'||s.result||s.side!==0)return false;s.side=1;alive(s,1).forEach(resetUnit);batteryStrike(s);return true;}
+function beginEnemy(s){if(s.phase==='deployment'||s.result||s.side!==0)return false;s.side=1;alive(s,1).forEach(resetUnit);batteryStrike(s);commandIntel(s);return true;}
 function lineOfSight(s,a,b){let n=Math.max(Math.abs(a.x-b.x),Math.abs(a.y-b.y));for(let i=1;i<n;i++){let t=tile(s,Math.round(a.x+(b.x-a.x)*i/n),Math.round(a.y+(b.y-a.y)*i/n));if(!t||t.terrain==='mountain'||t.terrain==='void')return false;}return true;}
 function sight(s,a,b){let range=a.scanTurn===s.turn?(D[a.type].branch==='Navy'?13:8):D[a.type].branch==='Navy'?(has(a,'radar')?12:has(a,'recon')?11:9):has(a,'radar')?7:has(a,'recon')?6:4;if(a.landed)range=2;const t=tile(s,b.x,b.y),concealed=t&&(['forest','ruins'].includes(t.terrain)&&D[b.type]?.branch!=='Air'||D[b.type]?.family==='sub'&&b.submergedUntil>=s.turn);if(concealed&&!has(a,'recon')&&!has(a,'radar')&&a.scanTurn!==s.turn)range=Math.min(range,2);return dist(a,b)<=range&&(a.scanTurn===s.turn||lineOfSight(s,a,b));}
 function visibleTo(s,u,team){return u.team===team||alive(s,team).some(a=>!a.carried&&sight(s,a,u))||s.tiles.some(t=>t.owner===team&&t.facility==='relay'&&dist(t,u)<=5&&lineOfSight(s,t,u));}
 function visible(s,u){return visibleTo(s,u,0);}
 function tileVisible(s,t){return alive(s,0).some(a=>!a.carried&&sight(s,a,t))||s.tiles.some(f=>f.owner===0&&f.facility&&dist(f,t)<=(f.facility==='relay'?5:2)&&lineOfSight(s,f,t));}
 function AisTactical(t,s){return t.objective||t.facility==='relay'&&s.mission.type==='hold'||t.facility==='town'||t.facility==='factory';}
-function ai(s,u){if(u.hp<=0||u.carried||s.result||u.fired)return;
-if(['scan','sonar'].includes(D[u.type].ability.kind))useAbility(s,u);
-const friends=alive(s,1).filter(v=>!v.carried),targets=alive(s,0).filter(v=>!v.carried&&visibleTo(s,v,1)),ownHQ=tile(s,s.enemyHome.x,s.enemyHome.y);
-if(has(u,'resupply')||has(u,'heal')){for(let i=0;i<D[u.type].serviceSlots;i++)for(const b of friends.slice().sort((a,b)=>a.hp/a.maxHp-b.hp/b.maxHp))if(support(s,u,b,i))break;if(u.fired)return;}
-if(u.landed){if(u.hp<u.maxHp||u.ammo.some((n,i)=>n<D[u.type].weapons[i].capacity)){u.hp=Math.min(u.maxHp,u.hp+25);u.ammo=D[u.type].weapons.map(w=>w.capacity);return;}flight(s,u);return;}
-if(u.hp<u.maxHp*.20||u.ammo.every(n=>n===0)||u.disabled){if(D[u.type].branch==='Air'){flight(s,u);return;}const service=friends.find(v=>has(v,'resupply')&&v.id!==u.id)||ownHQ;let paths=[...reach(s,u).values()].sort((a,b)=>dist(a,service)-dist(b,service));if(paths[0])move(s,u,paths[0].x,paths[0].y);if(dist(u,ownHQ)<=1){u.hp=Math.min(u.maxHp,u.hp+35);u.disabled=false;u.ammo=D[u.type].weapons.map(w=>w.capacity);}else reload(s,u);return;}
-const fire=()=>{let best=null;for(let i=0;i<D[u.type].weapons.length;i++){selectWeapon(u,i);for(const v of alive(s,0).filter(v=>!v.carried&&visibleTo(s,v,1)))if(canAttack(s,u,v)){let score=damage(s,u,v)+(v.hp<=damage(s,u,v)?50:0)+(has(v,'resupply')?20:0)+(v.courier?35:0);if(!best||score>best.score)best={i,v,score};}}if(best){selectWeapon(u,best.i);if(['focus','suppress','bombard','torpedo'].includes(D[u.type].ability.kind))useAbility(s,u);attack(s,u,best.v);return true;}return false;};
-if(fire()){while(!u.fired&&fire()){}return;}
-if(capture(s,u))return;
-let goals=has(u,'capture')?s.tiles.filter(t=>t.facility&&t.owner!==1):[];
- if(D[u.type].branch==='Navy')goals=[...targets.filter(v=>D[v.type].branch==='Navy'),{x:Math.floor(s.w*.36),y:s.h-3}];if(u.sentry&&u.entrenched&&!targets.some(v=>dist(u,v)<=7))return;
-if(s.mission.type==='protect')goals.push(...targets.filter(v=>v.courier));
-if(has(u,'resupply')||has(u,'heal')){const patients=friends.filter(v=>v.id!==u.id&&(has(u,'resupply')||D[v.type].branch==='Infantry')&&(v.disabled||v.hp<v.maxHp*.8||has(u,'resupply')&&v.ammo.some((n,i)=>n<D[v.type].weapons[i].capacity)));if(patients.length)goals=patients;}
-const threatened=targets.filter(v=>dist(u,v)<=8).sort((a,b)=>dist(u,a)-dist(u,b))[0];const contested=s.tiles.filter(t=>t.facility&&t.owner===0&&AisTactical(t,s));let goal=threatened||contested.sort((a,b)=>dist(u,a)-dist(u,b))[0]||(goals.length?goals:[s.home]).slice().sort((a,b)=>dist(u,a)-dist(u,b))[0];
-const route=new Map([[goal.x+','+goal.y,0]]),queue=[goal];while(queue.length){const p=queue.shift(),cost=route.get(p.x+','+p.y);for(const [dx,dy]of [[1,0],[-1,0],[0,1],[0,-1]]){const x=p.x+dx,y=p.y+dy,k=x+','+y;if(!route.has(k)&&passable(s,u,x,y)){route.set(k,cost+1);queue.push({x,y});}}}
-const moves=[...reach(s,u).values()];const score=p=>{let threat=targets.reduce((n,v)=>n+(dist(v,p)<=weapon(v).range?weapon(v).power:0),0),cover=['forest','ruins','hill'].includes(tile(s,p.x,p.y).terrain)?2:0,near=targets.length?Math.min(...targets.map(v=>dist(p,v))):99,standoff=has(u,'indirect')&&near<3?12:0;return (route.get(p.x+','+p.y)??dist(p,goal)+20)+threat*(u.hp<u.maxHp*.6?.07:.025)+standoff-cover;};moves.sort((a,b)=>score(a)-score(b));if(moves[0]&&score(moves[0])<score(u))move(s,u,moves[0].x,moves[0].y);
-if(capture(s,u))return;if(has(u,'resupply')||has(u,'heal')){for(let i=0;i<D[u.type].serviceSlots;i++)for(const b of friends.slice().sort((a,b)=>a.hp/a.maxHp-b.hp/b.maxHp))if(support(s,u,b,i))break;if(u.fired)return;}if(has(u,'indirect')&&u.moved)useAbility(s,u);while(!u.fired&&fire()){}if(!u.moved&&!targets.length)u.entrenched=true;u.fired=true;}
+
+// The field director only remembers enemies it has actually spotted; no omniscient targeting.
+function commandIntel(s){
+ if(s.aiOrders?.turn===s.turn)return s.aiOrders;
+ const contacts=Object.assign({},s.aiMemory||{});
+ for(const v of alive(s,0))if(!v.carried&&visibleTo(s,v,1)){
+  contacts[v.id]={id:v.id,x:v.x,y:v.y,seen:s.turn,type:v.type};
+ }
+ for(const [id,c] of Object.entries(contacts))if(s.turn-c.seen>2||!alive(s,0).some(v=>v.id===+id))delete contacts[id];
+ s.aiMemory=contacts;
+ const now=alive(s,0).filter(v=>!v.carried&&visibleTo(s,v,1));
+ const highValue=v=>D[v.type].branch==='Navy'?18+(v.type==='carrier'||v.type==='battleship'?22:0):has(v,'resupply')?25:has(v,'capture')?16:has(v,'indirect')?19:8;
+ const targets=now.slice().sort((a,b)=>highValue(b)+(1-b.hp/b.maxHp)*34+(b.courier?60:0)-highValue(a)-(1-a.hp/a.maxHp)*34-(a.courier?60:0));
+ const orders={turn:s.turn,focus:targets[0]?.id||null,contacts};
+ s.aiOrders=orders;return orders;
+}
+function enemyOrder(s){
+ commandIntel(s);
+ const priority=u=>{
+  if(u.battery)return -50;
+  if(u.anchored)return 20;
+  const k=D[u.type].ability.kind,branch=D[u.type].branch;
+  if(['scan','sonar'].includes(k))return 100;
+  if(has(u,'resupply')||has(u,'heal'))return 90;
+  if(branch==='Navy'&&['screen','fleetpatch','sortie'].includes(k))return 82;
+  if(u.escape)return 80;
+  if(has(u,'recon'))return 75;
+  if(has(u,'indirect'))return 65;
+  if(has(u,'capture'))return 45;
+  return 60;
+ };
+ return alive(s,1).slice().sort((a,b)=>priority(b)-priority(a)||a.id-b.id);
+}
+function tacticalThreat(s,u,p,targets){
+ let danger=0;
+ for(const v of targets){
+  const w=D[v.type].weapons;
+  const range=Math.max(...w.map(k=>k.range));
+  const distance=dist(v,p),indirect=has(v,'indirect');
+  if(distance>range+1||distance<(indirect?2:1))continue;
+  if(!indirect&&!lineOfSight(s,v,p))continue;
+  danger+=Math.max(...w.map(k=>k.power))*(distance<=range?1:.25);
+ }
+ const tileCover=({forest:14,ruins:17,hill:8}[tile(s,p.x,p.y)?.terrain]||0);
+ return Math.max(0,danger-tileCover);
+}
+function attackChoice(s,u,visible,focus){
+ let best=null;const old=u.weapon;
+ for(let i=0;i<D[u.type].weapons.length;i++){
+  if(u.used[i]||u.ammo[i]<=0)continue;
+  u.weapon=i;
+  for(const v of visible)if(v.hp>0&&canAttack(s,u,v)){
+   const n=damage(s,u,v),fatal=n>=v.hp;
+   const threat=has(v,'resupply')?26:D[v.type].branch==='Navy'&&D[u.type].branch==='Navy'?18:has(v,'indirect')?20:0;
+   const score=Math.min(n,v.hp)*.65+(fatal?80:0)+(v.id===focus?27:0)+threat+(v.courier?90:0)+(v.flagship?80:0);
+   if(!best||score>best.score)best={i,target:v,score};
+  }
+ }
+ u.weapon=old;return best;
+}
+function fireTactically(s,u,focus){
+ let fired=false;
+ for(let shot=0;shot<D[u.type].weapons.length&&!u.fired;shot++){
+  const visible=alive(s,0).filter(v=>!v.carried&&visibleTo(s,v,1));
+  const choice=attackChoice(s,u,visible,focus);if(!choice)break;
+  selectWeapon(u,choice.i);
+  const k=D[u.type].ability.kind;
+  if(['focus','torpedo','rangefinder','suppress'].includes(k)&&!abilityError(s,u))useAbility(s,u);
+  if(k==='bombard'&&!abilityError(s,u)){
+   const v=choice.target,adj=alive(s,0).filter(p=>dist(p,v)===1).length,friend=alive(s,1).filter(p=>p.id!==u.id&&dist(p,v)===1).length;
+   if(adj>=1&&adj>=friend)useAbility(s,u);
+  }
+  if(!attack(s,u,choice.target))break;
+  fired=true;
+  // Coordinate fire to finish the original priority target instead of spreading damage.
+  if(choice.target.hp>0)s.aiOrders={...commandIntel(s),turn:s.turn,focus:choice.target.id};
+ }
+ return fired;
+}
+function goalFor(s,u,visible,contacts){
+ const branch=D[u.type].branch,unit=visible.slice().sort((a,b)=>dist(u,a)-dist(u,b))[0];
+ if(branch==='Navy'){
+  const ships=visible.filter(v=>D[v.type].branch==='Navy').sort((a,b)=>dist(u,a)-dist(u,b));
+  if(ships.length)return ships[0];
+  const remembered=Object.values(contacts).filter(v=>D[v.type]?.branch==='Navy').sort((a,b)=>dist(u,a)-dist(u,b))[0];
+  return remembered||{x:Math.max(3,Math.floor(s.w*.36)),y:s.h-3};
+ }
+ if(u.assault&&s.mission.type==='counterbattery'){
+  return alive(s,0).filter(v=>v.battery).sort((a,b)=>dist(u,a)-dist(u,b))[0]||s.home;
+ }
+ if(s.mission.type==='escort'&&s.units.some(v=>v.courier)){
+  const courier=s.units.find(v=>v.courier&&v.hp>0);
+  if(courier)return courier;
+ }
+ if(unit&&dist(u,unit)<=Math.max(9,weapon(u).range+4))return unit;
+ const defense=s.tiles.filter(t=>t.facility&&t.owner===0);
+ const goals=has(u,'capture')?defense.concat(s.tiles.filter(t=>t.facility&&t.owner!==1)):defense;
+ if(goals.length)return goals.sort((a,b)=>dist(u,a)-dist(u,b))[0];
+ const remembered=Object.values(contacts).sort((a,b)=>dist(u,a)-dist(u,b))[0];
+ return remembered||s.home;
+}
+function tacticalPosition(s,u,goal,visible,contactHistory){
+ if(u.anchored||u.disabled||u.moved||u.fired)return false;
+ const movement=[...reach(s,u).values()];
+ if(!movement.length)return false;
+ const branch=D[u.type].branch;
+ const hostile=visible;
+ const friends=alive(s,1).filter(v=>v.id!==u.id&&!v.carried);
+ const enemySight=hostile;
+ const ideal=branch==='Navy'?D[u.type].family==='sub'?5:Math.max(4,Math.min(8,weapon(u).range-1)):has(u,'indirect')?4:2;
+ const potential=(p)=>{
+  const pos={...u,x:p.x,y:p.y,moved:p.x!==u.x||p.y!==u.y};
+  let opportunities=0;
+  for(const enemy of hostile){
+   const d=dist(pos,enemy),direct=has(u,'indirect')||lineOfSight(s,pos,enemy);
+   if(d<=Math.max(...D[u.type].weapons.map(w=>w.range))&&d>=(has(u,'indirect')?2:1)&&direct&&(branch==='Navy'||!has(u,'indirect')||!pos.moved||u.setupTurn===s.turn)){
+    opportunities=Math.max(opportunities,Math.min(enemy.hp,Math.max(...D[u.type].weapons.map(w=>w.power)))+(enemy.hp<40?22:0));
+   }
+  }
+  let goalDistance=dist(p,goal);
+  const distanceScore=Math.max(-80,50-goalDistance*4.7);
+  const danger=tacticalThreat(s,u,p,enemySight);
+  const close=hostile.length?Math.min(...hostile.map(v=>dist(p,v))):99;
+  const cover=({forest:6,ruins:9,hill:5}[tile(s,p.x,p.y)?.terrain]||0);
+  const objective=tile(s,p.x,p.y)?.facility&&tile(s,p.x,p.y).owner!==1&&has(u,'capture')?30:0;
+  const screened=branch==='Navy'?friends.filter(v=>D[v.type].branch==='Navy'&&dist(p,v)<=3).length*4:0;
+  const cohesion=friends.filter(v=>dist(p,v)<=2).length*1.4;
+  const standoff=close<ideal?-(ideal-close)*10:0;
+  const flank=hostile.some(v=>friends.some(ally=>dist(ally,v)<=3)&&dist(p,v)<=3)?9:0;
+  return distanceScore+opportunities*.7+objective+screened+cohesion+flank+cover+standoff-danger*(u.hp<u.maxHp*.5?.65:.34);
+ };
+ const from={x:u.x,y:u.y},stay=potential(from);
+ const shortlist=movement.sort((a,b)=>dist(a,goal)-dist(b,goal)).slice(0,100);
+ let best=null;
+ for(const p of shortlist){const score=potential(p)-(p.cost||0)*.09;if(!best||score>best.score)best={p,score};}
+ if(best&&best.score>stay+3)return move(s,u,best.p.x,best.p.y);
+ return false;
+}
+function ai(s,u){
+ if(!u||u.hp<=0||u.carried||s.result||u.fired||u.battery)return;
+ const plan=commandIntel(s),kind=D[u.type].ability.kind,branch=D[u.type].branch;
+ if(['scan','sonar'].includes(kind)&&!abilityError(s,u))useAbility(s,u);
+ const friends=alive(s,1).filter(v=>!v.carried);
+ let visible=alive(s,0).filter(v=>!v.carried&&visibleTo(s,v,1));
+ // Repair and command ships first; a support unit must earn its action.
+ if(has(u,'resupply')||has(u,'heal')){
+  for(let slot=0;slot<D[u.type].serviceSlots;slot++)
+   for(const v of friends.slice().sort((a,b)=>a.hp/a.maxHp-b.hp/b.maxHp))
+    if(support(s,u,v,slot))break;
+  if(u.fired)return;
+ }
+ if(['fleetpatch','sortie','screen'].includes(kind)){
+  const hurtNavy=friends.some(v=>D[v.type].branch==='Navy'&&dist(u,v)<=2&&(v.disabled||v.hp<v.maxHp*.70));
+  const aircraft=friends.some(v=>D[v.type].branch==='Air'&&dist(u,v)<=4&&(v.hp<v.maxHp*.82||v.ammo.some((n,i)=>n<D[v.type].weapons[i].capacity)));
+  const threatened=visible.some(v=>D[v.type].branch==='Navy'&&dist(v,u)<=8);
+  if(((kind==='fleetpatch'&&hurtNavy)||(kind==='sortie'&&aircraft)||(kind==='screen'&&threatened))&&!abilityError(s,u)){
+   useAbility(s,u);if(u.fired)return;
+  }
+ }
+ if(u.landed){if(u.hp<u.maxHp||u.ammo.some((n,i)=>n<D[u.type].weapons[i].capacity)){u.hp=Math.min(u.maxHp,u.hp+25);u.ammo=D[u.type].weapons.map(w=>w.capacity);}else flight(s,u);return;}
+ if(u.disabled||u.ammo.every(n=>n===0)){
+  const station=friends.find(v=>has(v,'resupply')&&v!==u)||tile(s,s.enemyHome.x,s.enemyHome.y);
+  tacticalPosition(s,u,station,visible,plan.contacts);reload(s,u);return;
+ }
+ if(kind==='harass'&&visible.length&&!abilityError(s,u))useAbility(s,u);
+ if(kind==='evasion'&&visible.length>=2&&!abilityError(s,u))useAbility(s,u);
+ if(kind==='rangefinder'&&visible.some(v=>dist(v,u)>weapon(u).range)&&!abilityError(s,u))useAbility(s,u);
+ if(u.escape){
+  const to=[...reach(s,u).values()].filter(p=>p.x<u.x).sort((a,b)=>a.x-b.x||dist(a,{x:3,y:s.h-3})-dist(b,{x:3,y:s.h-3}));
+  if(to[0])move(s,u,to[0].x,to[0].y);
+  fireTactically(s,u,plan.focus);return;
+ }
+ if(fireTactically(s,u,plan.focus))return;
+ if(capture(s,u))return;
+ // Entrenched garrisons anchor a front, but engage if a real target enters range.
+ if(u.sentry&&u.entrenched&&!visible.some(v=>dist(u,v)<=Math.max(7,weapon(u).range)))return;
+ const goal=goalFor(s,u,visible,plan.contacts);
+ tacticalPosition(s,u,goal,visible,plan.contacts);
+ if(capture(s,u))return;
+ if(has(u,'resupply')||has(u,'heal')){
+  for(let slot=0;slot<D[u.type].serviceSlots;slot++)for(const v of friends.slice().sort((a,b)=>a.hp/a.maxHp-b.hp/b.maxHp))if(support(s,u,v,slot))break;
+ }
+ if(has(u,'indirect')&&u.moved&&kind==='setup'&&!abilityError(s,u))useAbility(s,u);
+ fireTactically(s,u,plan.focus);
+ if(!u.moved&&visible.length===0)u.entrenched=true;
+}
 function income(s,team=0){return 1+Math.min(1,s.tiles.filter(t=>t.owner===team&&t.facility==='factory').length);}
 function counterpressure(s){if(!(s.alerts>0)||!s.lastCapture||s.mission.type==='defense')return;const h=tile(s,s.enemyHome.x,s.enemyHome.y);if(h.owner!==1)return;const capture=s.lastCapture;for(const type of ['rocket','rifle']){if(s.enemyCredits<D[type].cost||alive(s,1).length>=16)break;const candidates=s.tiles.filter(t=>!at(s,t.x,t.y)&&!t.facility&&passable(s,{type},t.x,t.y)&&dist(t,capture)>=4&&dist(t,capture)<=8&&dist(t,h)<=10).sort((a,b)=>dist(a,capture)-dist(b,capture));const t=candidates[0];if(!t)continue;let u=add(s,type,1,t.x,t.y);u.entrenched=false;s.enemyCredits-=D[type].cost;log(s,'Meridian counterattack approaching the captured position.');}}
 function wave(s){if(s.mission.type!=='defense'||![3,6,9].includes(s.turn))return;const number=(s.waves||0)+1;s.waves=number;const pool=number===1?['rifle','scout','rocket']:number===2?['mg','light','rocket','medic']:['heavy','rocket','mg','light','scout'];let deployed=0;for(let i=0;i<pool.length;i++){const x=Math.floor(s.w*.66)+(i%2),y=Math.floor(s.h/2)-5+i*2;const t=tile(s,x,y);if(t&&!at(s,x,y)){t.terrain='road';let u=add(s,pool[i],1,x,y);u.entrenched=i%2===0;deployed++;}}log(s,'INCOMING WAVE '+number+'/3: '+deployed+' hostile units approaching.');}
@@ -560,5 +729,5 @@ for(const d of Object.values(D)){
  d.ability=navyAbility(d);abilities[d.id]=d.ability;
 }
 // Navy is a separate long-range branch; land-unit balance clamps must not apply to ships.
-root.Atlas={withdraw,forecast,launch,flight,income,capacity,navalMap,tileVisible,visibleTo,lineOfSight,families,abilities,abilityError,useAbility,moveBudget,smoke,baseService,recruitError,freshProfile,purchase,train,deckError,weapon,canFire,selectWeapon,rangeTiles,reload,starters,D,chapters,missions,objectiveNames,make,tile,at,has,dist,reach,move,canAttack,damage,attack,capture,support,load,unload,recruit,alive,log,check,beginEnemy,ai,beginPlayer,visible,unlock,add,passable};if(typeof module!=='undefined')module.exports=root.Atlas;
+root.Atlas={enemyOrder,commandIntel,operationDescriptions,specialOperations,withdraw,forecast,launch,flight,income,capacity,navalMap,tileVisible,visibleTo,lineOfSight,families,abilities,abilityError,useAbility,moveBudget,smoke,baseService,recruitError,freshProfile,purchase,train,deckError,weapon,canFire,selectWeapon,rangeTiles,reload,starters,D,chapters,missions,objectiveNames,make,tile,at,has,dist,reach,move,canAttack,damage,attack,capture,support,load,unload,recruit,alive,log,check,beginEnemy,ai,beginPlayer,visible,unlock,add,passable};if(typeof module!=='undefined')module.exports=root.Atlas;
 })(typeof window!=='undefined'?window:globalThis);
