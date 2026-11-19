@@ -229,10 +229,11 @@ const river=Math.floor(w*.5+Math.sin(y*.4+m.n)*2);
 if(navalMap(m)){
 // Deep water occupies the foreground and, for coastal theaters, a second offshore basin.
 // Keep the central road corridor and high-ground facilities connected for infantry.
-const deepWater=y>=mid+5;
-const northernSea=['coast','islands'].includes(m.biome)&&y<=mid-7;
-const inlet=m.biome==='islands'&&y>=mid+2&&x<Math.floor(w*.31);
-const riverChannel=m.n%4===2&&Math.abs(x-river)<=1&&y>mid+3;
+const maritime=['coast','islands'].includes(m.biome);
+const deepWater=y>=mid+4;
+const northernSea=maritime&&y<=mid-5||!maritime&&m.n%3===0&&y<=mid-7;
+const inlet=m.biome==='islands'&&y>=mid+2&&x<Math.floor(w*.32);
+const riverChannel=m.n%4===2&&Math.abs(x-river)<=1&&y>mid+2;
 if(deepWater||northernSea||inlet||riverChannel)terrain='water';
 }
 s.tiles.push({x,y,terrain,owner:-1,facility:null});}
@@ -250,7 +251,7 @@ const pts=[[Math.floor(w*.33),mid-4,'factory'],[Math.floor(w*.58),mid+3,'town'],
 pts.forEach(([x,y,f],i)=>facility(x,y,f,i===2?1:-1,m.type==='seize'&&i<3||m.type==='hold'&&f==='relay'));
 for(const [x,y]of [[2,mid-2],[3,mid-1],[2,mid+2],[3,mid+1]]){for(let yy=Math.min(y,mid);yy<=Math.max(y,mid);yy++)road(x,yy);s.pads.push({x,y,kind:'land'});}
 if(navalMap(m)){
- for(let x=1;x<w-1;x++)for(let y=mid+5;y<h-1;y++){const t=tile(s,x,y);if(!t.facility)t.terrain='water';}
+ for(let x=1;x<w-1;x++)for(let y=mid+4;y<h-1;y++){const t=tile(s,x,y);if(!t.facility&&t.terrain!=='road'&&t.terrain!=='bridge')t.terrain='water';}
  for(const p of [{x:2,y:h-3,kind:'sea'},{x:4,y:h-3,kind:'sea'},{x:6,y:h-3,kind:'sea'}]){
    const t=tile(s,p.x,p.y);t.terrain='water';s.pads.push(p);
  }
