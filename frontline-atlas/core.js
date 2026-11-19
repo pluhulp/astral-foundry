@@ -209,16 +209,37 @@ const missions=chapters.flatMap((c,ch)=>c.names.map((name,n)=>{
 }));
 const has=(u,t)=>D[u.type].traits.includes(t),dist=(a,b)=>Math.abs(a.x-b.x)+Math.abs(a.y-b.y);
 // Shared continuous alpine heightfield: actual ground, tactical units and ray picks agree.
-function groundHeight(s,x,y){
- if(s?.mission?.biome!=='mountain')return 0;
+// Chunky square mountain terraces, with short angular ramps only along connected roads.
+function mountainTier(s,x,y){
  const seed=s.mission.seed||1807,u=x/Math.max(1,s.w-1),v=y/Math.max(1,s.h-1);
- const ascent=3.3*Math.pow(Math.max(0,u),1.18);
- const ridge=1.05*Math.sin(u*7.2+seed*.013)+.76*Math.cos(v*8.1+seed*.019)+.47*Math.sin((u*4.7+v*5.2)+seed*.007);
- const pass=.9*Math.exp(-Math.pow((v-(.50+.09*Math.sin(u*5.2+seed*.004)))/.15,2));
- return Math.max(.12,1.35+ascent+ridge-pass);
+ const raw=Math.max(.12,1.35+3.3*Math.pow(Math.max(0,u),1.18)
+  +1.05*Math.sin(u*7.2+seed*.013)+.76*Math.cos(v*8.1+seed*.019)
+  +.47*Math.sin(u*4.7+v*5.2+seed*.007)
+  -.9*Math.exp(-Math.pow((v-(.50+.09*Math.sin(u*5.2+seed*.004)))/.15,2)));
+ const terraces=Math.floor((raw-.6)/1.12),ascendingShelf=Math.floor(3*Math.max(0,x)/Math.max(1,s.w-1));
+ return Math.max(0,Math.min(4,Math.max(terraces,ascendingShelf)));
 }
-function elevation(s,t){return t?(typeof t.elevation==='number'?t.elevation:groundHeight(s,t.x,t.y)):0;}
-function rangeElevation(s,a,b){if(s.mission.biome!=='mountain'||D[a.type]?.branch==='Air'||D[a.type]?.branch==='Navy')return 0;return elevation(s,tile(s,a.x,a.y))-elevation(s,tile(s,b.x,b.y))>=1.2?1:0;}
+function mountainPlatform(s,x,y){return .7+.62*mountainTier(s,x,y);}
+function groundHeight(s,x,y){
+ if(!s?.mission)return 0;
+ if(s.mission.biome!=='mountain')return tile(s,Math.round(x),Math.round(y))?.terrain==='hill'?.22:0;
+ const nearestX=Math.round(x),nearestY=Math.round(y),tol=.14;
+ const road=(xx,yy)=>['road','bridge'].includes(tile(s,xx,yy)?.terrain);
+ // A triangular road ramp bridges two square terrace centers; the rest stays level.
+ if(Math.abs(y-nearestY)<tol&&Math.abs(x-Math.round(x))>1e-6){
+  const lo=Math.floor(x),hi=lo+1;
+  if(road(lo,nearestY)&&road(hi,nearestY))
+   return mountainPlatform(s,lo,nearestY)+(mountainPlatform(s,hi,nearestY)-mountainPlatform(s,lo,nearestY))*(x-lo);
+ }
+ if(Math.abs(x-nearestX)<tol&&Math.abs(y-Math.round(y))>1e-6){
+  const lo=Math.floor(y),hi=lo+1;
+  if(road(nearestX,lo)&&road(nearestX,hi))
+   return mountainPlatform(s,nearestX,lo)+(mountainPlatform(s,nearestX,hi)-mountainPlatform(s,nearestX,lo))*(y-lo);
+ }
+ return mountainPlatform(s,nearestX,nearestY);
+}
+function elevation(s,t){return t?groundHeight(s,t.x,t.y):0;}
+function rangeElevation(s,a,b){if(s.mission.biome!=='mountain'||D[a.type]?.branch==='Air'||D[a.type]?.branch==='Navy')return 0;return elevation(s,tile(s,a.x,a.y))-elevation(s,tile(s,b.x,b.y))>=.61?1:0;}
 function rng(seed){return ()=>{seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return ((t^t>>>14)>>>0)/4294967296;};}
 function make(m,difficulty='normal',upgrades={},deck=['rifle','scout','medic','light','supply']){
 const error=deckError(deck,m);if(error)throw new Error(error);const rand=rng(m.seed),w=24+(m.n%3)*2,h=18+(m.n%4)*2,mid=Math.floor(h/2),s={version:3,phase:'deployment',fog:true,deck:[...deck],mission:{...m},w,h,turn:1,side:0,credits:m.type==='defense'?20:m.type==='escort'||m.type==='counterbattery'?40:m.type==='battery'?22:m.type==='breach'?18:10,enemyCredits:8,difficulty,units:[],tiles:[],log:[],nextId:1,result:null,hold:0,seized:0,kills:0,losses:0,upgrades:{...upgrades},events:[],pads:[],seen:[],home:{x:2,y:mid},enemyHome:{x:w-3,y:mid+(m.n%3)-1}};
@@ -361,8 +382,9 @@ function batteryStrike(s){
    const p={x:z.x+dx,y:z.y+dy},t=tile(s,p.x,p.y);if(!t)continue;
    const victim=t.terrain==='void'?null:at(s,p.x,p.y);
    const amount=victim?Math.max(8,Math.round((dx===0&&dy===0?39:24)*(s.difficulty==='hard'?1.15:1))):0;
+   const before=victim?.hp;
    if(victim)hurt(s,victim,amount);
-   s.events.push({kind:'attack',from:{x:gun.x,y:gun.y},to:p,damage:amount,id:victim?.id});
+   s.events.push({kind:'attack',from:{x:gun.x,y:gun.y},to:p,damage:amount,id:victim?.id,sourceType:gun.type,targetType:victim?.type,explosive:true,destroyed:!!(before>0&&victim.hp===0)});
   }
  }
  s.warningZones=[];log(s,'MERIDIAN ARTILLERY: saturation strike landed!');
@@ -414,7 +436,7 @@ function step(s,u,x,y,fromX=u.x,fromY=u.y){
  if(s.mission.biome!=='mountain')return base;
  const rise=elevation(s,t)-elevation(s,tile(s,fromX,fromY));
  const paved=['road','bridge'].includes(t.terrain)&&['road','bridge'].includes(tile(s,fromX,fromY)?.terrain);
- return base+(rise>.8&&!paved?1:0)+(rise>1.55&&branch==='Armor'?1:0);
+ return base+(rise>.42&&!paved?1:0)+(rise>1.15&&branch==='Armor'?1:0);
 }
 function reach(s,u){let map=new Map();if(s.phase==='deployment'||u.anchored||u.protected||u.disabled||u.landed||((u.moved||u.fired)&&u.evadeMove!==s.turn)||u.carried||u.hp<=0)return map;let max=moveBudget(s,u),open=[{x:u.x,y:u.y,cost:0,path:[]}];map.set(u.x+','+u.y,open[0]);while(open.length){open.sort((a,b)=>a.cost-b.cost);let p=open.shift();for(const [dx,dy]of [[1,0],[-1,0],[0,1],[0,-1]]){let x=p.x+dx,y=p.y+dy,k=x+','+y;if(!passable(s,u,x,y)||at(s,x,y)&&at(s,x,y)!==u)continue;let cost=p.cost+step(s,u,x,y,p.x,p.y);if(cost>max||map.has(k)&&map.get(k).cost<=cost)continue;let next={x,y,cost,path:[...p.path,{x,y}]};map.set(k,next);open.push(next);}}map.delete(u.x+','+u.y);return map;}
 function move(s,u,x,y){if(s.phase==='deployment'||s.result||s.side!==u.team||u.anchored)return false;let p=reach(s,u).get(x+','+y);if(!p)return false;const old={x:u.x,y:u.y};u.x=x;u.y=y;u.moved=true;u.guard=false;u.entrenched=false;u.evadeMove=null;s.events.push({kind:'move',id:u.id,from:old,to:{x,y},path:p.path});return true;}
@@ -424,6 +446,7 @@ function hurt(s,u,n){u.hp=Math.max(0,u.hp-n);if(u.hp>0&&u.hp/u.maxHp<=.45&&n>=12
    s.lastKillTurn=s.turn;s.killsThisTurn=(s.killsThisTurn||0)+1;
    if(s.killsThisTurn%2===0&&(s.momentumRewards||0)<2){s.momentumRewards=(s.momentumRewards||0)+1;if(!s.operator)s.credits=Math.min(24,s.credits+1);log(s,'MOMENTUM +1 supply: consecutive enemy takedowns.');}
  }}else s.losses++;if(u.cargo){let c=s.units.find(v=>v.id===u.cargo);if(c&&c.hp>0){c.hp=0;if(c.team===0)s.losses++;}}}}
+function isExplosiveShot(u){return has(u,'splash')||has(u,'indirect')||D[u.type].branch==='Navy'||weapon(u).power>=40&&['Armor','Air'].includes(D[u.type].branch)||D[u.type].branch==='Infantry'&&has(u,'antiArmor');}
 function attack(s,a,b){
  if(s.result||s.side!==a.team||!canAttack(s,a,b))return false;
  const bombard=a.battery||a.bombardTurn===s.turn,point={x:b.x,y:b.y},n=damage(s,a,b),initial=b.hp;
@@ -431,15 +454,16 @@ function attack(s,a,b){
  if(a.suppressTurn===s.turn){b.suppressedUntil=s.turn+(a.team===1?1:0);a.suppressTurn=null;}
  a.shotRound=s.turn;a.ammo[a.weapon||0]--;a.used[a.weapon||0]=true;a.fired=a.used.every((used,i)=>used||a.ammo[i]===0);
  a.moved=true;a.guard=false;a.evadeMove=a.harassTurn===s.turn?s.turn:null;a.harassTurn=null;a.xp+=initial>0&&b.hp===0?1:0;
- s.events.push({kind:'attack',from:{x:a.x,y:a.y},to:point,damage:n,id:b.id});
+ s.events.push({kind:'attack',from:{x:a.x,y:a.y},to:point,damage:n,id:b.id,sourceType:a.type,targetType:b.type,explosive:bombard||isExplosiveShot(a),destroyed:initial>0&&b.hp===0});
  if(bombard){
   let friendlies=0;
   for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){
    const impact={x:point.x+dx,y:point.y+dy},cell=tile(s,impact.x,impact.y);
    if(!cell)continue;
    const v=cell.terrain==='void'?null:at(s,impact.x,impact.y),dmg=v&&v.hp>0&&!v.carried?Math.max(5,Math.round(damage(s,a,v)*.65)):0;
-   if(v&&dmg){if(v.team===a.team)friendlies++;const prev=v.hp;hurt(s,v,dmg);if(prev>0&&v.hp===0&&v.team!==a.team)a.xp++;}
-   s.events.push({kind:'attack',from:{x:a.x,y:a.y},to:impact,damage:dmg,id:v?.id});
+   const before=v?.hp;
+   if(v&&dmg){if(v.team===a.team)friendlies++;hurt(s,v,dmg);if(before>0&&v.hp===0&&v.team!==a.team)a.xp++;}
+   s.events.push({kind:'attack',from:{x:a.x,y:a.y},to:impact,damage:dmg,id:v?.id,sourceType:a.type,targetType:v?.type,explosive:true,destroyed:!!(before>0&&v.hp===0)});
   }
   log(s,D[a.type].name+' fired FIVE-shell bombardment at '+D[b.type].name+'; '+(friendlies?'FRIENDLY FIRE '+friendlies+' vessel(s)/unit(s).':'impact pattern clear of allies.'));
  }else{
@@ -447,8 +471,8 @@ function attack(s,a,b){
   if(has(a,'splash'))s.units.filter(v=>v.id!==b.id&&v.hp>0&&!v.carried&&dist(v,b)===1).forEach(v=>hurt(s,v,Math.round(n*.3)));
  }
  if(b.hp>0&&canAttack(s,b,a,true)&&!has(b,'indirect')){
-  b.ammo[b.weapon||0]--;const reply=Math.round(damage(s,b,a)*.45);hurt(s,a,reply);
-  s.events.push({kind:'counter',from:{x:b.x,y:b.y},to:{x:a.x,y:a.y},damage:reply,id:a.id});
+  b.ammo[b.weapon||0]--;const reply=Math.round(damage(s,b,a)*.45),before=a.hp;hurt(s,a,reply);
+  s.events.push({kind:'counter',from:{x:b.x,y:b.y},to:{x:a.x,y:a.y},damage:reply,id:a.id,sourceType:b.type,targetType:a.type,explosive:isExplosiveShot(b),destroyed:before>0&&a.hp===0});
  }
  check(s);return true;
 }
