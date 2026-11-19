@@ -5,11 +5,11 @@ function harness(A,source,initial={}){
  const nodes=new Map(),listeners={},data=new Map(Object.entries(initial));
  const node=id=>{if(!nodes.has(id))nodes.set(id,{hidden:false,innerHTML:'',textContent:'',value:'',style:{},classList:{add(){},remove(){}},focus(){},click(){}});return nodes.get(id);};
  const document={getElementById:node,addEventListener:(name,fn)=>listeners[name]=fn,createElement:()=>({click(){}})};
- class View{constructor(){this.angle=-.55;this.zoom=1;this.pan={};View.instance=this;}setState(s){this.state=s;}resize(){}mark(){}sync(){}events(){this.state.events=[];}cameraUpdate(){}panByPixels(dx,dy){this.panLog=[dx,dy];}centerOn(x,y){this.focus=[x,y];}}
+ class View{constructor(){this.flightSpeed=9;this.controls='flight';this.keys=new Set();View.instance=this;}setState(s){this.state=s;}resize(){}mark(){}sync(){}events(){this.state.events=[];}cameraUpdate(){}resetCamera(){this.resetCount=(this.resetCount||0)+1;}releaseKeys(){this.keys.clear();}setKey(k,v){if(v)this.keys.add(k);else this.keys.delete(k);this.keyLog=[k,v];}lookBy(yaw){this.lookLog=yaw;}dolly(n){this.dollyLog=n;}centerOn(x,y){this.focus=[x,y];}}
  const storage={getItem:k=>data.get(k)||null,setItem:(k,v)=>data.set(k,v)};
- new Function('Atlas','document','window','localStorage','matchMedia','AtlasView','setTimeout','clearTimeout',source)(A,document,{scrollTo(){}},storage,()=>({matches:false}),View,()=>0,()=>{});
+ new Function('Atlas','document','window','localStorage','matchMedia','AtlasView','setTimeout','clearTimeout',source)(A,document,{scrollTo(){},addEventListener(){}},storage,()=>({matches:false}),View,()=>0,()=>{});
  const click=(action,id)=>listeners.click({target:{closest:()=>({dataset:{do:action,id:id===undefined?undefined:String(id)},disabled:false})}});
- return {nodes,node,click,change:(id,checked)=>listeners.change({target:{id,checked,value:checked}}),view:()=>View.instance,saved:()=>JSON.parse(data.get('frontline-atlas-v3')||'null'),key:e=>listeners.keydown({target:{tagName:'BODY'},preventDefault(){},...e})};
+ return {nodes,node,click,change:(id,checked)=>listeners.change({target:{id,checked,value:checked}}),view:()=>View.instance,saved:()=>JSON.parse(data.get('frontline-atlas-v3')||'null'),key:e=>listeners.keydown({target:{tagName:'BODY'},preventDefault(){},...e}),keyUp:e=>listeners.keyup(e)};
 }
 
 test('boot opens main menu without starting a battle',()=>{let h=harness(A,source);assert(h.node('screen-content').innerHTML.includes('FRONTLINE'));assert(h.node('battle').hidden);assert.equal(h.view(),undefined);});
@@ -88,15 +88,24 @@ test('campaign previews describe every mission and visually distinguish specials
  h.click('mission',0);
  assert(h.node('screen-content').innerHTML.includes('FRONTLINE ASSAULT'));
 });
-test('camera settings toggle strategy dragging versus legacy orbit without touching progression',()=>{
+test('camera settings select flight vs alternative controls and persist speed without changing progression',()=>{
  const h=harness(A,source);h.click('settings');
- assert(h.node('screen-content').innerHTML.includes('Camera controls'));
- h.change('cameraLayout','classic');
+ assert(h.node('screen-content').innerHTML.includes('Free flight (Roblox-style)'));
+ h.change('cameraLayout','classic');h.change('cameraSpeed','fast');
  assert.equal(h.saved().profile.settings.cameraLayout,'classic');
+ assert.equal(h.saved().profile.settings.cameraSpeed,'fast');
  h.click('mission',0);h.click('deploy');
- assert.equal(h.view().controls,'classic');
- h.key({key:'d'});assert.deepEqual(h.view().panLog,[95,0]);
- h.key({key:'q'});assert(h.view().angle<-.55);
+ assert.equal(h.view().controls,'classic');assert.equal(h.view().flightSpeed,16);
+ h.key({key:'d'});assert.deepEqual(h.view().keyLog,['d',true]);
+ h.keyUp({key:'d'});assert.deepEqual(h.view().keyLog,['d',false]);
+ h.key({key:'e'});assert(h.view().keys.has('e'));
+ h.key({key:'f'});assert(h.view().resetCount>0);
+});
+test('default flight mode carries WASD commands while combat click hotkeys remain available',()=>{
+ const h=setup();const v=h.view();
+ assert.equal(v.controls,'flight');assert.equal(v.flightSpeed,9);
+ for(const key of ['w','a','s','d','q','e','shift']){h.key({key});assert(v.keys.has(key));h.keyUp({key});assert(!v.keys.has(key));}
+ h.key({key:'r'});assert(v.resetCount>=2);
 });
 test('artillery alert and momentum both appear in battle HUD',()=>{
  const h=setup(),s=h.view().state;
