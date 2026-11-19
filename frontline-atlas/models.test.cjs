@@ -62,3 +62,23 @@ test('every active naval hull has physical geometry for multiple independent wea
   assert(A.D[id].range>=5,id+' should have longer range than land units');
  }
 });
+
+test('new tactical camera converts pixels into modest world movement and centers on a selected unit',()=>{
+ const V=context.window.AtlasView,v=Object.create(V.prototype);
+ Object.assign(v,{state:{w:24,h:18},w:1100,h:720,angle:0,tilt:1.05,zoom:1.1,pan:{x:0,y:0},cameraUpdate(){}});
+ v.panByPixels(90,0);
+ assert(v.pan.x>.5&&v.pan.x<7,'90 pixels should move a few tiles, not the full map');
+ assert(Math.abs(v.pan.y)<.1);
+ v.panByPixels(0,80);
+ assert(v.pan.y<-.5&&v.pan.y>-8);
+ v.centerOn(8,8);
+ assert(Math.abs(v.pan.x-(24/2-8-.5))<.001);
+ assert(Math.abs(v.pan.y-(8-18/2+.5))<.001);
+});
+test('siege artillery warnings display five clearly marked threatened tiles per battery',()=>{
+ const V=context.window.AtlasView,v=Object.create(V.prototype),s=A.make(A.missions.find(m=>m.type==='battery'));
+ Object.assign(v,{state:s,markGroup:new T.Group(),selectedId:null});
+ s.warningZones=[{x:12,y:10,batteryId:s.batteryIDs[0]}];v.mark(null,[],[]);
+ const warning=v.markGroup.children.filter(o=>o.isMesh&&[0xde4e36,0xb96948].includes(o.material.color.getHex()));
+ assert(warning.length>=20,'four border segments around five strike squares must be visible');
+});
