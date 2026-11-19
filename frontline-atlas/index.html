@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#101d28"><meta name="description" content="Frontline Atlas v9.4. Outsmart coordinated naval fleets, disable artillery barrages and survive special tactical operations."><title>Frontline Atlas</title><link rel="stylesheet" href="style.css?v=94"></head>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#101d28"><meta name="description" content="Frontline Atlas v9.5. Free-fly over battlefields with a Roblox-style perspective camera and intuitive WASD navigation."><title>Frontline Atlas</title><link rel="stylesheet" href="style.css?v=95"></head>
 <body>
 <main id="battle" hidden>
  <section class="map-wrap" aria-label="Tactical battlefield"><canvas id="battlefield" tabindex="0" aria-label="Click a troop to select. Teal tiles show movement; amber outlines show weapon range."></canvas><div id="unit-labels"></div></section>
@@ -7,11 +7,11 @@
  <details id="battle-force" class="battle-force"></details>
  <details id="battle-journal" class="battle-journal"></details>
  <div id="objective" class="objective"></div>
- <div class="camera-controls"><button data-camera="left" aria-label="Rotate left">↶</button><button data-camera="right" aria-label="Rotate right">↷</button><button data-camera="out" aria-label="Zoom out">−</button><button data-camera="in" aria-label="Zoom in">+</button><button data-camera="reset" aria-label="Reset camera">⌖</button></div>
+ <div class="camera-controls" aria-label="Fly camera"><button data-camera="left" title="Turn camera left" aria-label="Turn left">↶</button><button data-camera="right" title="Turn camera right" aria-label="Turn right">↷</button><button data-camera="out" title="Fly backward" aria-label="Fly backward">−</button><button data-camera="in" title="Fly forward" aria-label="Fly forward">+</button><button data-camera="focus" title="Fly to selected troop (F)" aria-label="Focus troop">◎</button><button data-camera="reset" title="Reset free-flight camera (R)" aria-label="Reset camera">⌂</button></div>
  <div id="unit-panel" class="unit-panel" hidden></div>
- <div id="battle-hint" class="battle-hint">Select a troop · drag to pan · right-drag to orbit · scroll to zoom</div>
+ <div id="battle-hint" class="battle-hint">Right-drag to look · WASD to fly · Q/E down/up · scroll to fly · F focus · R reset</div>
 </main>
 <section id="screen" class="screen"><div id="screen-content"></div></section>
 <div id="toast" role="status" aria-live="polite"></div>
-<script src="three.min.js"></script><script src="roster.js?v=94"></script><script src="core.js?v=94"></script><script src="models.js?v=94"></script><script src="render.js?v=94"></script><script src="app.js?v=94"></script>
+<script src="three.min.js"></script><script src="roster.js?v=95"></script><script src="core.js?v=95"></script><script src="models.js?v=95"></script><script src="render.js?v=95"></script><script src="app.js?v=95"></script>
 </body></html>
