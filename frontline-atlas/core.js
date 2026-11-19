@@ -209,16 +209,36 @@ const missions=chapters.flatMap((c,ch)=>c.names.map((name,n)=>{
 }));
 const has=(u,t)=>D[u.type].traits.includes(t),dist=(a,b)=>Math.abs(a.x-b.x)+Math.abs(a.y-b.y);
 // Shared continuous alpine heightfield: actual ground, tactical units and ray picks agree.
-function groundHeight(s,x,y){
- if(s?.mission?.biome!=='mountain')return 0;
+// Chunky square mountain terraces, with short angular ramps only along connected roads.
+function mountainTier(s,x,y){
  const seed=s.mission.seed||1807,u=x/Math.max(1,s.w-1),v=y/Math.max(1,s.h-1);
- const ascent=3.3*Math.pow(Math.max(0,u),1.18);
- const ridge=1.05*Math.sin(u*7.2+seed*.013)+.76*Math.cos(v*8.1+seed*.019)+.47*Math.sin((u*4.7+v*5.2)+seed*.007);
- const pass=.9*Math.exp(-Math.pow((v-(.50+.09*Math.sin(u*5.2+seed*.004)))/.15,2));
- return Math.max(.12,1.35+ascent+ridge-pass);
+ const raw=Math.max(.12,1.35+3.3*Math.pow(Math.max(0,u),1.18)
+  +1.05*Math.sin(u*7.2+seed*.013)+.76*Math.cos(v*8.1+seed*.019)
+  +.47*Math.sin(u*4.7+v*5.2+seed*.007)
+  -.9*Math.exp(-Math.pow((v-(.50+.09*Math.sin(u*5.2+seed*.004)))/.15,2)));
+ return Math.max(0,Math.min(4,Math.floor((raw-.6)/1.12)));
 }
-function elevation(s,t){return t?(typeof t.elevation==='number'?t.elevation:groundHeight(s,t.x,t.y)):0;}
-function rangeElevation(s,a,b){if(s.mission.biome!=='mountain'||D[a.type]?.branch==='Air'||D[a.type]?.branch==='Navy')return 0;return elevation(s,tile(s,a.x,a.y))-elevation(s,tile(s,b.x,b.y))>=1.2?1:0;}
+function mountainPlatform(s,x,y){return .7+.62*mountainTier(s,x,y);}
+function groundHeight(s,x,y){
+ if(!s?.mission)return 0;
+ if(s.mission.biome!=='mountain')return tile(s,Math.round(x),Math.round(y))?.terrain==='hill'?.22:0;
+ const nearestX=Math.round(x),nearestY=Math.round(y),tol=.14;
+ const road=(xx,yy)=>['road','bridge'].includes(tile(s,xx,yy)?.terrain);
+ // A triangular road ramp bridges two square terrace centers; the rest stays level.
+ if(Math.abs(y-nearestY)<tol&&Math.abs(x-Math.round(x))>1e-6){
+  const lo=Math.floor(x),hi=lo+1;
+  if(road(lo,nearestY)&&road(hi,nearestY))
+   return mountainPlatform(s,lo,nearestY)+(mountainPlatform(s,hi,nearestY)-mountainPlatform(s,lo,nearestY))*(x-lo);
+ }
+ if(Math.abs(x-nearestX)<tol&&Math.abs(y-Math.round(y))>1e-6){
+  const lo=Math.floor(y),hi=lo+1;
+  if(road(nearestX,lo)&&road(nearestX,hi))
+   return mountainPlatform(s,nearestX,lo)+(mountainPlatform(s,nearestX,hi)-mountainPlatform(s,nearestX,lo))*(y-lo);
+ }
+ return mountainPlatform(s,nearestX,nearestY);
+}
+function elevation(s,t){return t?groundHeight(s,t.x,t.y):0;}
+function rangeElevation(s,a,b){if(s.mission.biome!=='mountain'||D[a.type]?.branch==='Air'||D[a.type]?.branch==='Navy')return 0;return elevation(s,tile(s,a.x,a.y))-elevation(s,tile(s,b.x,b.y))>=.61?1:0;}
 function rng(seed){return ()=>{seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return ((t^t>>>14)>>>0)/4294967296;};}
 function make(m,difficulty='normal',upgrades={},deck=['rifle','scout','medic','light','supply']){
 const error=deckError(deck,m);if(error)throw new Error(error);const rand=rng(m.seed),w=24+(m.n%3)*2,h=18+(m.n%4)*2,mid=Math.floor(h/2),s={version:3,phase:'deployment',fog:true,deck:[...deck],mission:{...m},w,h,turn:1,side:0,credits:m.type==='defense'?20:m.type==='escort'||m.type==='counterbattery'?40:m.type==='battery'?22:m.type==='breach'?18:10,enemyCredits:8,difficulty,units:[],tiles:[],log:[],nextId:1,result:null,hold:0,seized:0,kills:0,losses:0,upgrades:{...upgrades},events:[],pads:[],seen:[],home:{x:2,y:mid},enemyHome:{x:w-3,y:mid+(m.n%3)-1}};
@@ -414,7 +434,7 @@ function step(s,u,x,y,fromX=u.x,fromY=u.y){
  if(s.mission.biome!=='mountain')return base;
  const rise=elevation(s,t)-elevation(s,tile(s,fromX,fromY));
  const paved=['road','bridge'].includes(t.terrain)&&['road','bridge'].includes(tile(s,fromX,fromY)?.terrain);
- return base+(rise>.8&&!paved?1:0)+(rise>1.55&&branch==='Armor'?1:0);
+ return base+(rise>.42&&!paved?1:0)+(rise>1.15&&branch==='Armor'?1:0);
 }
 function reach(s,u){let map=new Map();if(s.phase==='deployment'||u.anchored||u.protected||u.disabled||u.landed||((u.moved||u.fired)&&u.evadeMove!==s.turn)||u.carried||u.hp<=0)return map;let max=moveBudget(s,u),open=[{x:u.x,y:u.y,cost:0,path:[]}];map.set(u.x+','+u.y,open[0]);while(open.length){open.sort((a,b)=>a.cost-b.cost);let p=open.shift();for(const [dx,dy]of [[1,0],[-1,0],[0,1],[0,-1]]){let x=p.x+dx,y=p.y+dy,k=x+','+y;if(!passable(s,u,x,y)||at(s,x,y)&&at(s,x,y)!==u)continue;let cost=p.cost+step(s,u,x,y,p.x,p.y);if(cost>max||map.has(k)&&map.get(k).cost<=cost)continue;let next={x,y,cost,path:[...p.path,{x,y}]};map.set(k,next);open.push(next);}}map.delete(u.x+','+u.y);return map;}
 function move(s,u,x,y){if(s.phase==='deployment'||s.result||s.side!==u.team||u.anchored)return false;let p=reach(s,u).get(x+','+y);if(!p)return false;const old={x:u.x,y:u.y};u.x=x;u.y=y;u.moved=true;u.guard=false;u.entrenched=false;u.evadeMove=null;s.events.push({kind:'move',id:u.id,from:old,to:{x,y},path:p.path});return true;}
