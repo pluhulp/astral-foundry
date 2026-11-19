@@ -83,3 +83,25 @@ test('core emits explosive/kill annotations without changing damage and weapon c
  assert(shots.some(e=>e.destroyed&&e.id===target.id));
  assert.equal(attacker.ammo[0],before-1);
 });
+
+test('tank cannon shells create explosive hits while rifle shots remain restrained',()=>{
+ const armor=state();armor.units=[];
+ const tank=A.add(armor,'tank',0,5,8),victim=A.add(armor,'rifle',1,8,8);
+ assert(A.attack(armor,tank,victim));
+ const impact=armor.events.find(e=>e.kind==='attack');
+ assert.equal(impact.sourceType,'tank');assert.equal(impact.explosive,true);
+ const infantry=state();infantry.units=[];
+ const shooter=A.add(infantry,'rifle',0,5,8),defender=A.add(infantry,'rifle',1,7,8);
+ assert(A.attack(infantry,shooter,defender));
+ assert.equal(infantry.events.find(e=>e.kind==='attack').explosive,false);
+});
+test('temporary explosion meshes are disposed after flight but impact decals remain',()=>{
+ const s=state(),v=view(s);
+ v.makeShot({kind:'attack',from:{x:3,y:7},to:{x:9,y:7},damage:42,explosive:true},1000);
+ const e=v.effects[0];const fx=e.fx;
+ v.advanceEffects(e.start+e.travel+10,s);
+ assert.equal(v.impactGroup.children.length,1);
+ v.advanceEffects(e.start+e.duration+1,s);
+ assert.equal(v.effects.length,0);assert(!v.scene.children.includes(fx));
+ assert.equal(v.impactGroup.children.length,1,'crater survives effect cleanup');
+});
