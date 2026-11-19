@@ -107,3 +107,43 @@ test('siege artillery warnings display five clearly marked threatened tiles per 
  const warning=v.markGroup.children.filter(o=>o.isMesh&&[0xde4e36,0xb96948].includes(o.material.color.getHex()));
  assert(warning.length>=20,'four border segments around five strike squares must be visible');
 });
+
+test('right mouse drag rotates the free camera without moving it, and click selection remains distinct from navigation',()=>{
+ const V=context.window.AtlasView,v=Object.create(V.prototype),handlers={};
+ const canvas={
+  addEventListener:(name,fn)=>handlers[name]=fn,
+  setPointerCapture(){},focus(){},
+  getBoundingClientRect:()=>({left:0,top:0,width:1100,height:720})
+ };
+ let clicks=0;
+ Object.assign(v,{canvas,state:{w:24,h:18},w:1100,h:720,eye:new T.Vector3(-18,19,22),yaw:2.5,pitch:-.6,controls:'flight',cameraUpdate(){},onClick(){clicks++;},pick(){return {x:10,y:9};}});
+ v.bind();
+ const start=v.eye.clone(),original=v.yaw;
+ handlers.pointerdown({button:2,clientX:250,clientY:260});
+ handlers.pointermove({button:2,clientX:345,clientY:250});
+ handlers.pointerup({button:2,clientX:345,clientY:250});
+ assert.equal(clicks,0,'free-look must not activate a troop');
+ assert(v.eye.distanceTo(start)<1e-8,'free-look cannot orbit the camera position');
+ assert(Math.abs(v.yaw-original)>.2,'free-look should visibly change heading');
+ handlers.pointerdown({button:0,clientX:200,clientY:200});
+ handlers.pointerup({button:0,clientX:200,clientY:200});
+ assert.equal(clicks,1,'left-click without drag selects normally');
+ handlers.pointerdown({button:0,clientX:200,clientY:200});
+ handlers.pointermove({button:0,clientX:310,clientY:240});
+ handlers.pointerup({button:0,clientX:310,clientY:240});
+ assert.equal(clicks,1,'dragging must not accidentally trigger a battle click');
+ assert(v.eye.distanceTo(start)>1,'panning must translate actual position');
+});
+test('perspective picking still resolves battlefield grid positions',()=>{
+ const V=context.window.AtlasView,v=Object.create(V.prototype),s=A.make(A.missions[0]);
+ const width=1100,height=720;
+ const canvas={getBoundingClientRect:()=>({left:0,top:0,width,height})};
+ Object.assign(v,{canvas,state:s,w:width,h:height,eye:new T.Vector3(-18,19,22),yaw:2.5,pitch:-.6,
+ camera:new T.PerspectiveCamera(42,width/height,.12,240),ray:new T.Raycaster(),pointer:new T.Vector2(),unitGroup:new T.Group(),cameraEase:null});
+ v.cameraUpdate(true);
+ const t={x:Math.floor(s.w/2),y:Math.floor(s.h/2)};
+ const p=v.project(t.x-s.w/2+.5,0,t.y-s.h/2+.5);
+ const picked=v.pick({clientX:p.x,clientY:p.y});
+ assert(picked,'perspective ray must hit ground');
+ assert.deepEqual(picked,t);
+});
