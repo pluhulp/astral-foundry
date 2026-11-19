@@ -104,3 +104,13 @@ test('artillery alert and momentum both appear in battle HUD',()=>{
  h.click('hq');h.view().onClick(s.pads[0]);
  assert(h.node('battle-stats').textContent.includes('MOMENTUM'));
 });
+
+test('40-supply escort and reverse artillery battles survive browser save reloads',()=>{
+ for(const kind of ['escort','counterbattery']){
+  const m=A.missions.find(m=>m.type===kind),profile=A.freshProfile(),battle=A.make(m);
+  const h=harness(A,source,{'frontline-atlas-v3':JSON.stringify({profile,battle})});
+  assert(h.node('screen-content').innerHTML.includes('Resume operation'),kind+' archived a valid save');
+  h.click('resume');assert.equal(h.view().state.credits,40);
+  assert.equal(h.view().state.mission.type,kind);
+ }
+});
