@@ -87,3 +87,11 @@
 .camera-controls button{min-width:38px;min-height:36px}
 .status-chips .danger-chip{color:#ffbfab!important;background:#63352c!important;border-color:#df886b!important}
 @media(max-width:880px){.mission-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.mission{min-height:200px}.mission .mission-brief{min-height:0}}
+
+/* v9.5 Free-flight camera visual hints */
+#battlefield{touch-action:none;cursor:crosshair;outline:none}
+#battlefield:focus-visible{outline:2px solid #9bc7b6;outline-offset:-2px}
+.camera-controls{border-radius:8px;padding:4px;background:#13282bbb;backdrop-filter:blur(8px)}
+.camera-controls button{border-radius:5px;min-width:35px;min-height:35px}
+.battle-hint{max-width:min(750px,calc(100vw - 30px));white-space:normal;text-align:center}
+@media(max-width:700px){.camera-controls{right:8px;top:145px;flex-wrap:wrap;max-width:152px}.camera-controls button{min-width:33px;min-height:33px}}
