@@ -59,3 +59,14 @@ test('interception wins by sinking the flagship and loses if it escapes west',()
  assert(flag.escape);assert.equal(A.check(s),null);flag.x=3;assert.equal(A.check(s),'defeat');
  const t=start(m);t.units.find(u=>u.id===t.flagshipId).hp=0;assert.equal(A.check(t),'victory');
 });
+
+test('artillery tracks only visible contacts; without spotting it shells fixed public approach corridors',()=>{
+ const m=A.missions.find(m=>m.type==='battery'),s=start(m);
+ assert(s.warningZones.length===4);assert(s.warningZones.every(z=>z.spotted===false));
+ const enemy=A.alive(s,1).find(u=>!u.battery),ally=A.alive(s,0).find(u=>!u.courier);
+ const x=enemy.x-1,y=enemy.y;
+ A.tile(s,x,y).terrain='road';ally.x=x;ally.y=y;
+ assert(A.visibleTo(s,ally,1),'enemy scout/contact must see the relocated troop');
+ A.beginPlayer(s);
+ assert(s.warningZones.some(z=>z.spotted===true));
+});
