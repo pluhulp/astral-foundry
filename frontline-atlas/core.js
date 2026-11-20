@@ -133,7 +133,15 @@ function prepareTargetWeapon(s,u,v){
  }
  u.weapon=best?.i??old;return !!best;
 }
-function rangeTiles(s,u){if(!canFire(u)||u.carried||u.hp<=0||has(u,'indirect')&&D[u.type].branch!=='Navy'&&u.repositionedTurn===s.turn&&u.setupTurn!==s.turn)return [];const w=weapon(u);return s.tiles.filter(t=>t.terrain!=='void'&&dist(u,t)>= (has(u,'indirect')?2:1)&&dist(u,t)<=(u.battery?13:w.range)+(u.rangeBoostTurn===s.turn?2:0)+(tile(s,u.x,u.y)?.terrain==='hill'?1:0)+rangeElevation(s,u,t));}
+function rangeTiles(s,u){
+ if(!u||u.fired||u.landed||u.carried||u.hp<=0||(u.serviceUsed||[]).some(Boolean))return [];
+ if(has(u,'indirect')&&D[u.type].branch!=='Navy'&&u.repositionedTurn===s.turn&&u.setupTurn!==s.turn)return [];
+ const usable=D[u.type].weapons.filter((w,i)=>!u.used[i]&&u.ammo[i]>0);
+ if(!usable.length)return [];
+ return s.tiles.filter(t=>t.terrain!=='void'&&
+  dist(u,t)>=(has(u,'indirect')?2:1)&&usable.some(w=>dist(u,t)<=(u.battery?13:w.range)+
+   (u.rangeBoostTurn===s.turn?2:0)+(tile(s,u.x,u.y)?.terrain==='hill'?1:0)+rangeElevation(s,u,t)));
+}
 function reload(s,u){if(s.phase==='deployment'||s.result||s.side!==u.team||u.fired||u.hp<=0||u.carried||D[u.type].branch==='Air'&&!u.landed)return false;const ws=D[u.type].weapons;if(ws.every((w,i)=>u.ammo[i]===w.capacity))return false;
  const t=tile(s,u.x,u.y),depot=t.facility&&t.owner===u.team;
  if(!u.reserve&&!(depot&&(u.team===1||s.credits>0)))return false;
