@@ -168,3 +168,18 @@ test('adjacent infantry can claim an abandoned enemy hull with a single battlefi
  assert.equal(hull.team,0);
  assert(h.node('toast').textContent.includes('Captured'));
 });
+
+test('abandoned neutral vehicles survive save validation, reload, and later infantry capture',()=>{
+ const m=A.missions[0],profile=A.freshProfile(),battle=A.make(m);
+ battle.phase='combat';
+ const hull=A.add(battle,'light',1,8,8);
+ hull.team=2;hull.abandoned=true;hull.disabled=true;hull.morale=0;
+ const payload=JSON.stringify({profile,battle});
+ const h=harness(A,source,{'frontline-atlas-v3':payload});
+ assert(h.node('screen-content').innerHTML.includes('Resume operation'),'neutral salvage cannot archive an active save');
+ h.click('resume');
+ const saved=h.view().state.units.find(u=>u.id===hull.id);
+ assert(saved&&saved.team===2&&saved.abandoned,'neutral hull must persist across save load');
+ assert.equal(saved.hp,hull.hp);
+ assert.deepEqual(h.saved().profile.completed,{});
+});
