@@ -122,3 +122,31 @@ test('first two enemy takedowns each provide one capped battle supply',()=>{
  assert.equal(s.credits,initial+2);
  assert.equal(s.momentumRewards,2);
 });
+
+test('multiweapon indirect vehicles can fire every mount if they did not physically relocate',()=>{
+ const s=field(),u=A.add(s,'battleship',0,5,8),target=A.add(s,'heavy',1,10,8);
+ target.hp=target.maxHp=4000;
+ for(let i=0;i<A.D[u.type].weapons.length;i++){
+  A.selectWeapon(u,i);
+  assert(A.canAttack(s,u,target),'a fired but unmoved platform must still use later mounts');
+  assert(A.attack(s,u,target));
+ }
+ assert.equal(u.used.filter(Boolean).length,4);
+});
+test('artillery can only shoot after actual movement if setup has been completed',()=>{
+ const s=field(),gun=A.add(s,'arty',0,5,8),target=A.add(s,'rifle',1,9,8),
+  spotter=A.add(s,'scout',0,8,9);
+ assert(A.canAttack(s,gun,target));
+ assert(A.move(s,gun,6,8));assert.equal(gun.repositionedTurn,s.turn);
+ assert(!A.canAttack(s,gun,target),'after relocating, gun needs emplacing');
+ assert(A.useAbility(s,gun));
+ assert(A.canAttack(s,gun,target));
+});
+test('range overlay includes other ready mounts even if the manually selected weapon has fired',()=>{
+ const s=field(),gun=A.add(s,'battleship',0,5,8),target=A.add(s,'heavy',1,10,8);
+ target.hp=target.maxHp=4000;assert(A.attack(s,gun,target));
+ assert.equal(gun.used[0],true);
+ assert(A.rangeTiles(s,gun).some(p=>p.x===target.x&&p.y===target.y));
+ assert(A.canAttackAny(s,gun,target));assert(A.prepareTargetWeapon(s,gun,target));
+ assert.notEqual(gun.weapon,0);
+});
