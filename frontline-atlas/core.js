@@ -518,7 +518,16 @@ function move(s,u,x,y){
  }
  event.to={x:u.x,y:u.y};check(s);return true;
 }
-function canAttack(s,a,b,retaliate=false){if(s.phase==='deployment'||!a||!b||a.landed||!visibleTo(s,b,a.team)||a.hp<=0||b.hp<=0||a.carried||b.carried||a.team===b.team||(!retaliate&&!canFire(a))||a.ammo[a.weapon||0]<=0)return false;let d=dist(a,b),def=weapon(a);if(has(a,'antiShip')&&D[b.type].branch!=='Navy')return false;if(D[b.type].branch==='Air'&&!b.landed&&!has(a,'antiAir')&&D[a.type].branch!=='Air'&&!['rifle','mg'].includes(D[a.type].family))return false;return (has(a,'indirect')||lineOfSight(s,a,b))&&d<=(a.battery?13:def.range)+(a.rangeBoostTurn===s.turn?2:0)+(tile(s,a.x,a.y)?.terrain==='hill'?1:0)+rangeElevation(s,a,b)&&d>=(has(a,'indirect')?2:1)&&(!has(a,'indirect')||a.battery||D[a.type].branch==='Navy'||!a.moved||a.setupTurn===s.turn);}
+// Long-range indirect shells need a real team observer rather than global
+// omniscient targeting. Nearby infantry/recon and active radios can relay a target.
+function spottingLink(s,a,b){
+ if(!has(a,'indirect')||D[a.type].branch==='Navy'||a.battery)return true;
+ if(sight(s,a,b))return true;
+ return alive(s,a.team).some(v=>v.id!==a.id&&!v.carried&&v.hp>0&&
+  (D[v.type].branch==='Infantry'||has(v,'recon')||has(v,'radar')||has(v,'command'))&&
+  sight(s,v,b));
+}
+function canAttack(s,a,b,retaliate=false){if(s.phase==='deployment'||!a||!b||a.landed||!visibleTo(s,b,a.team)||a.hp<=0||b.hp<=0||a.carried||b.carried||a.team===b.team||(!retaliate&&!canFire(a))||a.ammo[a.weapon||0]<=0||!spottingLink(s,a,b))return false;let d=dist(a,b),def=weapon(a);if(has(a,'antiShip')&&D[b.type].branch!=='Navy')return false;if(D[b.type].branch==='Air'&&!b.landed&&!has(a,'antiAir')&&D[a.type].branch!=='Air'&&!['rifle','mg'].includes(D[a.type].family))return false;return (has(a,'indirect')||lineOfSight(s,a,b))&&d<=(a.battery?13:def.range)+(a.rangeBoostTurn===s.turn?2:0)+(tile(s,a.x,a.y)?.terrain==='hill'?1:0)+rangeElevation(s,a,b)&&d>=(has(a,'indirect')?2:1)&&(!has(a,'indirect')||a.battery||D[a.type].branch==='Navy'||!a.moved||a.setupTurn===s.turn);}
 function fleetEscort(s,b){
  if(!b.flagship||D[b.type].branch!=='Navy')return null;
  return alive(s,b.team).find(v=>v.id!==b.id&&!v.carried&&D[v.type].branch==='Navy'&&dist(v,b)<=4);
@@ -563,10 +572,8 @@ function attack(s,a,b){
   log(s,D[a.type].name+' hit '+D[b.type].name+' for '+n+'.');
   if(has(a,'splash'))s.units.filter(v=>v.id!==b.id&&v.hp>0&&!v.carried&&dist(v,b)===1).forEach(v=>{const d=Math.round(n*.3);hurt(s,v,d);pressureHit(s,a,v,d);});
  }
- if(b.hp>0&&canAttack(s,b,a,true)&&!has(b,'indirect')){
-  b.ammo[b.weapon||0]--;const reply=Math.round(damage(s,b,a)*.45),before=a.hp;hurt(s,a,reply);pressureHit(s,b,a,reply);
-  s.events.push({kind:'counter',from:{x:b.x,y:b.y},to:{x:a.x,y:a.y},damage:reply,id:a.id,sourceType:b.type,targetType:a.type,explosive:isExplosiveShot(b),destroyed:before>0&&a.hp===0});
- }
+ // Counterfire is earned by deliberately setting an ambush / overwatch instead of
+ // automatically receiving a free shot every time any unit is attacked.
  check(s);return true;
 }
 function capture(s,u){if(s.phase==='deployment'||s.result||u.hp<=0||s.side!==u.team||u.fired||u.carried||pinned(s,u)||!has(u,'capture'))return false;let t=tile(s,u.x,u.y);if(!t.facility||t.owner===u.team)return false;t.owner=u.team;u.fired=true;u.moved=true;u.entrenched=true;const reward=t.facility==='factory'?3:t.facility==='town'?2:1;if(u.team===0)s.credits=Math.min(s.operator?999:24,s.credits+reward);else s.enemyCredits=Math.min(24,s.enemyCredits+reward);if(u.team===0&&t.facility!=='hq'){s.lastCaptureTurn=s.turn;s.alerts=(s.alerts||0)+1;s.lastCapture={x:t.x,y:t.y};}log(s,D[u.type].name+' captured '+t.facility+' (+'+reward+' supply; command cap '+capacity(s,u.team)+').');check(s);return true;}
@@ -606,7 +613,7 @@ function unload(s,a,x,y,airdrop=false){let b=s.units.find(v=>v.id===a.cargo);if(
 function recruit(s,type,h=s.tiles.find(t=>t.facility==='hq'&&t.owner===0),chosen){if(recruitError(s,type,h))return false;const t=chosen||spawnTile(s,type,h);if(!legalSpawn(s,type,h,t))return false;
 const u=add(s,type,0,t.x,t.y);if(!s.operator)s.credits-=D[type].cost;if(s.phase!=='deployment'){u.readyTurn=s.turn+1;u.moved=u.fired=true;u.used=D[type].weapons.map(()=>true);u.serviceUsed=Array(D[type].serviceSlots).fill(true);}return u;}
 function withdraw(s,u){if(s.phase!=='deployment'||s.side!==0||s.result||!u||!s.units.includes(u)||u.team!==0||u.courier||u.carried||u.cargo||u.hp<=0)return false;s.units.splice(s.units.indexOf(u),1);if(!s.operator)s.credits+=D[u.type].cost;return true;}
-function forecast(s,a,b){if(!canAttack(s,a,b)||s.result||s.side!==a.team)return null;const hit=damage(s,a,b),remaining=Math.max(0,b.hp-hit),after={...b,hp:remaining};let counter=remaining>0&&canAttack(s,after,a,true)&&!has(b,'indirect')?Math.round(damage(s,after,a)*.45):0;const shell=a.battery||a.bombardTurn===s.turn;
+function forecast(s,a,b){if(!canAttack(s,a,b)||s.result||s.side!==a.team)return null;const hit=damage(s,a,b),remaining=Math.max(0,b.hp-hit),after={...b,hp:remaining};let counter=0;const shell=a.battery||a.bombardTurn===s.turn;
  const splash=(shell||has(a,'splash'))?s.units.filter(v=>v.hp>0&&!v.carried&&v.id!==b.id&&dist(v,b)===1&&visibleTo(s,v,a.team)).map(v=>({id:v.id,friendly:v.team===a.team,damage:Math.min(v.hp,shell?Math.max(5,Math.round(damage(s,a,v)*.65)):Math.round(hit*.3))})):[];return {damage:Math.min(b.hp,hit),remaining,counter,kill:remaining===0,splash};}
 function flight(s,u){if(!u||D[u.type].branch!=='Air'||s.phase==='deployment'||s.result||s.side!==u.team||u.fired||u.carried)return false;const t=tile(s,u.x,u.y);if(!u.landed&&['water','mountain','forest','void'].includes(t.terrain))return false;u.landed=!u.landed;u.moved=u.fired=true;u.used.fill(true);log(s,D[u.type].name+(u.landed?' landed. Ground service available.':' airborne. Ready next round.'));return true;}
 
@@ -1024,5 +1031,5 @@ for(const d of Object.values(D)){
  d.ability=navyAbility(d);abilities[d.id]=d.ability;
 }
 // Navy is a separate long-range branch; land-unit balance clamps must not apply to ships.
-root.Atlas={legalSpawn,spawnTile,secureRelay,relayCounterattack,pinned,pressureHit,setOverwatch,reactionFire,fleetEscort,navalFireControl,batteryCoverageAt,groundHeight,elevation,rangeElevation,enemyOrder,commandIntel,operationDescriptions,specialOperations,withdraw,forecast,launch,flight,income,capacity,navalMap,tileVisible,visibleTo,lineOfSight,families,abilities,abilityError,useAbility,moveBudget,smoke,baseService,recruitError,freshProfile,purchase,train,deckError,weapon,canFire,selectWeapon,rangeTiles,reload,starters,D,chapters,missions,objectiveNames,make,tile,at,has,dist,reach,move,canAttack,damage,attack,capture,support,load,unload,recruit,alive,log,check,beginEnemy,ai,beginPlayer,visible,unlock,add,passable};if(typeof module!=='undefined')module.exports=root.Atlas;
+root.Atlas={spottingLink,legalSpawn,spawnTile,secureRelay,relayCounterattack,pinned,pressureHit,setOverwatch,reactionFire,fleetEscort,navalFireControl,batteryCoverageAt,groundHeight,elevation,rangeElevation,enemyOrder,commandIntel,operationDescriptions,specialOperations,withdraw,forecast,launch,flight,income,capacity,navalMap,tileVisible,visibleTo,lineOfSight,families,abilities,abilityError,useAbility,moveBudget,smoke,baseService,recruitError,freshProfile,purchase,train,deckError,weapon,canFire,selectWeapon,rangeTiles,reload,starters,D,chapters,missions,objectiveNames,make,tile,at,has,dist,reach,move,canAttack,damage,attack,capture,support,load,unload,recruit,alive,log,check,beginEnemy,ai,beginPlayer,visible,unlock,add,passable};if(typeof module!=='undefined')module.exports=root.Atlas;
 })(typeof window!=='undefined'?window:globalThis);
