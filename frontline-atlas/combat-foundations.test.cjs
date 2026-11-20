@@ -196,3 +196,11 @@ test('firing ends a scout unit movement allowance and ordinary tanks still move 
  const tank=A.add(s,'light',0,4,9);assert(A.move(s,tank,5,9));
  assert.equal(A.reach(s,tank).size,0);
 });
+
+test('capturing a forward point on an odd round never selects an undefined enemy reinforcement',()=>{
+ const s=A.make(A.missions[0]);s.phase='combat';s.side=1;s.turn=2;
+ s.alerts=2;s.lastCapture={x:11,y:8};s.enemyCredits=18;
+ assert.doesNotThrow(()=>A.beginPlayer(s),'alerted odd-round reinforcements must use an integer roster index');
+ assert.equal(s.turn,3);
+ assert(s.units.every(u=>A.D[u.type]),'every responsive troop must be a valid unit type');
+});
