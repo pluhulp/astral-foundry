@@ -1,3 +1,38 @@
+# Frontline Atlas v10 — Combat Doctrine (foundation rebuild)
+
+**A foundational combat-system rewrite, not a claim of one-to-one fidelity to Noobs in Combat.** This release changes the decisions inside every round while preserving the game's art, free-fly camera, campaigns, saves, research and naval systems.
+
+## Mechanical changes
+- **Resolve / morale**: Ground units have 6 morale points (distinct from HP). Heavy and suppressive fire lowers resolve, while terrain, entrenchment and officers reduce morale loss. At low resolve, ground units become pinned and cannot move/capture; depleted infantry can fall back one tile. Morale recovers slowly while out of fire, helped by command units. Navy and air don't use morale.
+- **Deliberate overwatch**: Press **G** or the ◉ Overwatch command on an idle unit, giving up its actions to watch a lane. The first opposing unit to enter range can receive a real reaction attack before finishing its path; it consumes ammunition and may pin/kill the mover. No more universal, automatic free response to every attack.
+- **Combined arms counter system**: Regular riflemen are ineffective against heavy armor and warships. Rockets/anti-armor specialists retain their counters. Flanking with another friendly squad near an entrenched target reduces its cover. Damage output scales more strongly with actual unit health.
+- **Scouting as a real support job**: Ground indirect artillery firing beyond five tiles needs a recon/radar/command observer or friendly relay that can actually see the target. Close-range organic targeting and naval guns keep their normal behavior.
+- **Contested objectives**: Securing a relay or objective triggers real, budgeted Meridian counterattacks approaching that exact location, rather than waiting out the score. Convoy protection can also draw local interceptors.
+- **Compact HUD**: Selected ground troops show morale and pinned status; overwatch has a single tactical button instead of a new text menu. Legacy saved battles without morale fields initialize safely.
+
+## Readability / accessibility
+- Overwatch fires only once and is cleared on the owner's following turn or after firing; weapon ammo, range, line-of-sight and fog still apply.
+- No background processing or multiplayer synchronization required; all actions remain deterministic and represented in the battle save.
+- Existing operator mode, deployment controls and 3D model assets are preserved.
+
+## Grounded references (studied, not cloned)
+- Roblox Noobs in Combat game mechanics, as documented by the community [perks guide](https://noobsincombat.wiki/progression/noobs-in-combat-perks), [morale guide](https://noobsincombat.wiki/progression/noobs-in-combat-morale), [damage guide](https://noobsincombat.wiki/progression/noobs-in-combat-damage-calculator), and [strategy guide](https://newgame.co.jp/metaverse/en/roblox/5734383673/noobs-in-combat/guide/).
+- Noobs in Combat v6 community [changelog](https://www.reddit.com/r/NoobsInCombat/comments/1xfk308/) describes dynamic vision, transitions and short-path reveals, which remain candidates for subsequent visual fidelity work.
+- Relevant public YouTube references: [Noobs in Combat beginner gameplay](https://www.youtube.com/watch?v=6yYGMjEkrwo), [tutorial/boot camp](https://www.youtube.com/watch?v=YwIvgJnjy0U), [tactics](https://www.youtube.com/watch?v=o2j21CBzaB0). The searchable video descriptions and metadata were reviewed, **not** claimed as frame-by-frame footage analysis.
+
+## Follow-up areas for a full identity rebuild
+The following are **not finished** by v10 and require more playtesting or authored content:
+1. Objective-specific mission scripts, enemy formations, tutorial/onboarding, and hand-authored stage pacing.
+2. Fuel, multi-move, resupply routes, transports, capturable abandoned vehicles, and radio-battery linking.
+3. Detailed weapon penetration tables, squad-level casualties, and deeper morale state transitions.
+4. Animated fog reveal along routes, tactical audio, impact/audio mixing, effect timbre, UI timing and sound feedback.
+5. Measured playtesting against curated scenarios—opening missions, naval flagship, siege battery, convoy and hold relay—using metrics like time-to-contact, casualty rate, positioning decisions, turn length and viable counter-loadouts.
+6. Role/tech-tree economy evaluation across all 312 configurations, to reduce duplicated units and make counter roles more meaningful.
+
+The next phases must be based on playtests, not speculatively adding mechanics. The 80 maps and v3 storage key remain compatible.
+
+---
+
 # Frontline Atlas v9.8 — Fleet Tactics & Action-Economy Balance
 
 ## The navy is still devastating—but needs combined arms
