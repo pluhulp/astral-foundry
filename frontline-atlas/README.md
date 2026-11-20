@@ -16,9 +16,18 @@ https://pluhulp.github.io/astral-foundry/frontline-atlas/
 - Isometric unit miniatures, four-angle camera, movement animations, damage effects and distinct terrain
 - Branching research dependencies and persistent campaign stars and unit unlocks
 
+## Tactical depth update
+
+- Entrenchment: eligible unspent foot units can DIG IN for +2 defense; movement cancels that stance
+- Flanking: close allied land support reduces effective cover on an attacked target
+- Contested capture: a unit cannot secure a site while hostile land troops threaten its adjacent tiles; control is reevaluated each turn
+- Reinforcement staging: choose a legal spawn tile in your rear area or beside an uncontested captured site rather than receiving random deployments
+- Smoke: mortar and artillery units can spend a shot to place a temporary smoke screen blocking longer-range spotting
+- Units now animate along their calculated movement route, with muzzle trails, damage effects and terrain elevation graphics
+
 ## Controls
 
-Left click selects a unit, moves to a highlighted destination or attacks a valid enemy. ATTACK and SECONDARY select an attack profile. Right-drag pans, scroll zooms, Q/E rotates, WASD pans, Enter/Space ends turn, Esc cancels.
+Left click selects a unit, moves to a highlighted destination or attacks a valid enemy. Click a reinforcement in the deployment tray and then click a highlighted staging tile. ATTACK and SECONDARY select an attack profile. Right-drag pans, scroll zooms, Q/E rotates, WASD pans, Enter/Space ends turn, Esc cancels.
 
 ## Balance
 
