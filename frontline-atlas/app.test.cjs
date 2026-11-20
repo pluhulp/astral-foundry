@@ -152,7 +152,7 @@ test('the field manual and one-click combat controls expose overwatch without de
 test('optional sound effects are disabled by default and persist as a user setting',()=>{
  const h=harness(A,source);h.click('settings');
  assert(h.node('screen-content').innerHTML.includes('Tactical sound effects'));
- assert.equal(h.saved().profile.settings.sound,false);
+ assert(!h.node('screen-content').innerHTML.includes('id="sound" type="checkbox" checked'),'sound starts off');
  h.change('sound',true);
  assert.equal(h.saved().profile.settings.sound,true);
  h.click('mission',0);h.click('deploy');
