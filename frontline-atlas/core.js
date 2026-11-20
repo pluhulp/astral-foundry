@@ -764,6 +764,10 @@ function goalFor(s,u,visible,contacts){
  }
  // The field commander protects ACTUAL mission objectives, not the closest
  // arbitrary neutral income building while the player advances unopposed.
+ if(has(u,'heal')||has(u,'resupply')){
+  const injured=alive(s,1).filter(v=>v.id!==u.id&&(v.hp<v.maxHp||v.disabled||has(u,'resupply')&&v.ammo.some((n,i)=>n<D[v.type].weapons[i].capacity))).sort((a,b)=>a.hp/a.maxHp-b.hp/b.maxHp||dist(a,u)-dist(b,u));
+  if(injured.length)return injured[0];
+ }
  if(s.mission.type==='hold'){
   const relay=s.tiles.find(t=>t.facility==='relay');
   if(relay?.owner===0)return relay;
@@ -775,7 +779,7 @@ function goalFor(s,u,visible,contacts){
  if(s.mission.type==='protect'||s.mission.type==='convoy'){
   const courier=s.units.find(v=>v.courier&&v.hp>0);if(courier)return courier;
  }
- if(s.mission.type==='capture'&&!unit&&!u.sentry)return {x:Math.floor(s.w*.43),y:Math.floor(s.h/2)};
+ if(s.mission.type==='capture'&&!unit&&!u.sentry)return {x:Math.max(3,Math.floor(s.w*.23)),y:Math.floor(s.h/2)};
  if(u.assault&&s.mission.type==='counterbattery'){
   return alive(s,0).filter(v=>v.battery).sort((a,b)=>dist(u,a)-dist(u,b))[0]||s.home;
  }
@@ -897,6 +901,12 @@ function ai(s,u){
   }
  }
  if(u.landed){if(u.hp<u.maxHp||u.ammo.some((n,i)=>n<D[u.type].weapons[i].capacity)){u.hp=Math.min(u.maxHp,u.hp+25);u.ammo=D[u.type].weapons.map(w=>w.capacity);}else flight(s,u);return;}
+ if(has(u,'indirect')&&!visible.length&&!Object.keys(plan.contacts).length&&!u.assault&&!u.battery){
+  // No artillery omniscience: the battery holds its prepared lane until
+  // an observer establishes a real contact.
+  if(!u.moved&&!u.fired)overwatch(s,u);
+  return;
+ }
  if(u.ammo.every(n=>n===0)){
   const station=friends.find(v=>has(v,'resupply')&&v!==u)||tile(s,s.enemyHome.x,s.enemyHome.y);
   tacticalPosition(s,u,station,visible,plan.contacts);reload(s,u);return;
