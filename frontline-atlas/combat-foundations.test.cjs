@@ -114,7 +114,7 @@ test('relay counterattack announces an incoming wave and spends its actual budge
 });
 test('first two enemy takedowns each provide one capped battle supply',()=>{
  const s=field(),gun=A.add(s,'superheavy',0,4,7),
- foes=[7,8,9].map(y=>A.add(s,'rifle',1,6,y));
+ foes=[7,8,6].map(y=>A.add(s,'rifle',1,6,y));
  foes.forEach(v=>v.hp=1);
  const initial=s.credits;for(let i=0;i<3;i++){
   A.selectWeapon(gun,i);assert(A.attack(s,gun,foes[i]));
