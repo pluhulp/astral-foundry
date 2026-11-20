@@ -562,18 +562,26 @@ function step(s,u,x,y,fromX=u.x,fromY=u.y){
  const paved=['road','bridge'].includes(t.terrain)&&['road','bridge'].includes(tile(s,fromX,fromY)?.terrain);
  return base+(rise>.42&&!paved?1:0)+(rise>1.15&&branch==='Armor'?1:0);
 }
-function reach(s,u){let map=new Map();if(s.phase==='deployment'||u.anchored||u.protected||u.disabled||u.landed||pinned(s,u)||((u.moved||u.fired)&&u.evadeMove!==s.turn)||u.carried||u.hp<=0)return map;let max=moveBudget(s,u),open=[{x:u.x,y:u.y,cost:0,path:[]}];map.set(u.x+','+u.y,open[0]);while(open.length){open.sort((a,b)=>a.cost-b.cost);let p=open.shift();for(const [dx,dy]of [[1,0],[-1,0],[0,1],[0,-1]]){let x=p.x+dx,y=p.y+dy,k=x+','+y;if(!passable(s,u,x,y)||at(s,x,y)&&at(s,x,y)!==u)continue;let cost=p.cost+step(s,u,x,y,p.x,p.y);if(cost>max||map.has(k)&&map.get(k).cost<=cost)continue;let next={x,y,cost,path:[...p.path,{x,y}]};map.set(k,next);open.push(next);}}map.delete(u.x+','+u.y);return map;}
+function canSplitMove(s,u){
+ return !!u&&['Infantry','Armor'].includes(D[u.type].branch)&&has(u,'recon')&&
+  (u.moveSpent||0)>0&&(u.moveSpent||0)<moveBudget(s,u)&&
+  u.shotRound!==s.turn&&!u.fired&&!pinned(s,u);
+}
+function reach(s,u){let map=new Map();if(s.phase==='deployment'||u.anchored||u.protected||u.disabled||u.landed||pinned(s,u)||((u.moved||u.fired)&&u.evadeMove!==s.turn&&!canSplitMove(s,u))||u.carried||u.hp<=0)return map;let max=moveBudget(s,u)-(canSplitMove(s,u)?(u.moveSpent||0):0),open=[{x:u.x,y:u.y,cost:0,path:[]}];map.set(u.x+','+u.y,open[0]);while(open.length){open.sort((a,b)=>a.cost-b.cost);let p=open.shift();for(const [dx,dy]of [[1,0],[-1,0],[0,1],[0,-1]]){let x=p.x+dx,y=p.y+dy,k=x+','+y;if(!passable(s,u,x,y)||at(s,x,y)&&at(s,x,y)!==u)continue;let cost=p.cost+step(s,u,x,y,p.x,p.y);if(cost>max||map.has(k)&&map.get(k).cost<=cost)continue;let next={x,y,cost,path:[...p.path,{x,y}]};map.set(k,next);open.push(next);}}map.delete(u.x+','+u.y);return map;}
 function move(s,u,x,y){
  if(s.phase==='deployment'||s.result||s.side!==u.team||u.anchored)return false;
  const p=reach(s,u).get(x+','+y);if(!p)return false;
  const from={x:u.x,y:u.y},travel=[],event={kind:'move',id:u.id,from,to:{x,y},path:travel};
  s.events.push(event);
  u.moved=true;u.repositionedTurn=s.turn;u.guard=false;u.entrenched=false;u.evadeMove=null;
+ let spent=0;
  for(const point of p.path){
+  spent+=step(s,u,point.x,point.y,u.x,u.y);
   u.x=point.x;u.y=point.y;travel.push({x:u.x,y:u.y});
   reactionFire(s,u);
   if(u.hp<=0||pinned(s,u))break;
  }
+ u.moveSpent=(u.moveSpent||0)+spent;
  event.to={x:u.x,y:u.y};check(s);return true;
 }
 // Long-range indirect shells need a real team observer rather than global
@@ -694,7 +702,7 @@ const cheapest=Math.min(...s.deck.map(id=>D[id].cost));if(!alive(s,0).some(u=>!u
 if((s.emptyRounds||0)>=3)lose=true;
  if(s.turn>60)lose=true;
 if(lose||win){s.result=lose?'defeat':'victory';log(s,lose?'Operation failed.':'Objective secured.');}return s.result;}
-function resetUnit(u){u.moved=u.fired=!!u.protected;u.guard=false;u.pressure=Math.max(0,(u.pressure||0)-23);u.used=D[u.type].weapons.map(()=>false);u.serviceUsed=Array(D[u.type].serviceSlots).fill(false);}
+function resetUnit(u){u.moved=u.fired=!!u.protected;u.guard=false;u.pressure=Math.max(0,(u.pressure||0)-23);u.moveSpent=0;u.used=D[u.type].weapons.map(()=>false);u.serviceUsed=Array(D[u.type].serviceSlots).fill(false);}
 function beginEnemy(s){if(s.phase==='deployment'||s.result||s.side!==0)return false;s.side=1;alive(s,1).forEach(resetUnit);batteryStrike(s);commandIntel(s);return true;}
 function lineOfSight(s,a,b){
  const n=Math.max(Math.abs(a.x-b.x),Math.abs(a.y-b.y));
@@ -860,7 +868,7 @@ function planNavalBroadside(s,u,visible){
  return false;
 }
 function tacticalPosition(s,u,goal,visible,contactHistory){
- if(u.anchored||u.disabled||u.moved||u.fired)return false;
+ if(u.anchored||u.disabled||u.fired||(u.moved&&!canSplitMove(s,u)))return false;
  const movement=[...reach(s,u).values()];
  if(!movement.length)return false;
  const branch=D[u.type].branch;
@@ -945,6 +953,12 @@ function ai(s,u){
  }
  if(has(u,'indirect')&&u.moved&&kind==='setup'&&!abilityError(s,u))useAbility(s,u);
  fireTactically(s,u,plan.focus);
+ // Recon specialists can spend remaining movement in another short burst,
+ // but never receive extra total movement or another shot.
+ if(!s.result&&canSplitMove(s,u)&&visible.length===0){
+  const next=goalFor(s,u,visible,plan.contacts);
+  tacticalPosition(s,u,next,visible,plan.contacts);
+ }
  if(!u.moved&&visible.length===0){u.entrenched=true;if(['mg','atgun','td','rifle','rocket'].includes(D[u.type].family)&&!pinned(s,u))setOverwatch(s,u);}
 }
 function income(s,team=0){return 1+Math.min(1,s.tiles.filter(t=>t.owner===team&&t.facility==='factory').length);}
@@ -1089,5 +1103,5 @@ for(const d of Object.values(D)){
  d.ability=navyAbility(d);abilities[d.id]=d.ability;
 }
 // Navy is a separate long-range branch; land-unit balance clamps must not apply to ships.
-root.Atlas={canAttackAny,prepareTargetWeapon,spottingLink,legalSpawn,spawnTile,secureRelay,relayCounterattack,pinned,pressureHit,setOverwatch,reactionFire,fleetEscort,navalFireControl,batteryCoverageAt,groundHeight,elevation,rangeElevation,enemyOrder,commandIntel,operationDescriptions,specialOperations,withdraw,forecast,launch,flight,income,capacity,navalMap,tileVisible,visibleTo,lineOfSight,families,abilities,abilityError,useAbility,moveBudget,smoke,baseService,recruitError,freshProfile,purchase,train,deckError,weapon,canFire,selectWeapon,rangeTiles,reload,starters,D,chapters,missions,objectiveNames,make,tile,at,has,dist,reach,move,canAttack,damage,attack,capture,support,load,unload,recruit,alive,log,check,beginEnemy,ai,beginPlayer,visible,unlock,add,passable};if(typeof module!=='undefined')module.exports=root.Atlas;
+root.Atlas={canSplitMove,canAttackAny,prepareTargetWeapon,spottingLink,legalSpawn,spawnTile,secureRelay,relayCounterattack,pinned,pressureHit,setOverwatch,reactionFire,fleetEscort,navalFireControl,batteryCoverageAt,groundHeight,elevation,rangeElevation,enemyOrder,commandIntel,operationDescriptions,specialOperations,withdraw,forecast,launch,flight,income,capacity,navalMap,tileVisible,visibleTo,lineOfSight,families,abilities,abilityError,useAbility,moveBudget,smoke,baseService,recruitError,freshProfile,purchase,train,deckError,weapon,canFire,selectWeapon,rangeTiles,reload,starters,D,chapters,missions,objectiveNames,make,tile,at,has,dist,reach,move,canAttack,damage,attack,capture,support,load,unload,recruit,alive,log,check,beginEnemy,ai,beginPlayer,visible,unlock,add,passable};if(typeof module!=='undefined')module.exports=root.Atlas;
 })(typeof window!=='undefined'?window:globalThis);
