@@ -77,3 +77,36 @@ test('morale recovers on a quiet turn and old saves without morale fields remain
  soldier.morale=2;soldier.underFireTurn=-2;
  A.recoverMorale(s,soldier);assert.equal(soldier.morale,3);
 });
+
+test('suppressed armored vehicles abandon their hulls instead of requiring an HP knockout',()=>{
+ const s=field(),attacker=A.add(s,'rocket',0,7,8),tank=A.add(s,'heavy',1,9,8);
+ const hp=tank.hp;
+ A.shake(s,attacker,tank,70);A.shake(s,attacker,tank,70);
+ assert.equal(tank.team,2);assert(tank.abandoned);
+ assert.equal(tank.hp,hp,'crew surrender must not require vehicle destruction');
+ assert(s.events.some(e=>e.kind==='abandoned'&&e.id===tank.id));
+ assert.equal(A.canAttack(s,attacker,tank),false,'neutral salvage is not a normal attack target');
+});
+test('an adjacent, fresh infantry unit can commandeer a neutral vehicle but not use it immediately',()=>{
+ const s=field(),inf=A.add(s,'rifle',0,8,8),hull=A.add(s,'light',1,9,8);
+ hull.team=2;hull.abandoned=true;hull.morale=0;
+ assert(A.claimVehicle(s,inf,hull));assert.equal(hull.team,0);
+ assert(!hull.abandoned&&hull.disabled);
+ assert(hull.readyTurn>s.turn);
+ assert(inf.moved&&inf.fired,'commandeering consumes infantry action');
+ assert(s.events.some(e=>e.kind==='claimed'&&e.id===hull.id));
+});
+test('pinned or distant squads cannot commandeer enemy vehicles',()=>{
+ const s=field(),inf=A.add(s,'rifle',0,6,8),hull=A.add(s,'light',1,9,8);
+ hull.team=2;hull.abandoned=true;
+ assert(!A.claimVehicle(s,inf,hull),'non-adjacent soldier');
+ inf.x=8;inf.pinnedUntil=s.turn+1;
+ assert(!A.claimVehicle(s,inf,hull),'pinned soldier');
+});
+test('enemy recon garrisons can hold a defensive overwatch stance',()=>{
+ const s=field(),gun=A.add(s,'mg',1,17,8);
+ gun.sentry=true;gun.entrenched=true;s.side=1;
+ const player=A.add(s,'rifle',0,3,8);
+ A.ai(s,gun);
+ assert(gun.guard,'unthreatened sentries should actually guard their approach lanes');
+});
