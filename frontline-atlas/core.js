@@ -286,7 +286,7 @@ for(const lane of [mid-2,mid+2])for(let x=3;x<w-3;x++){
 }
 const enemies=m.ch===0&&m.n===0?['rifle','scout','mg','rocket']:
  ['rifle','rocket','light','scout','supply',...(m.n>0?['mg']:[]),...(m.difficulty>2?['td','arty']:[]),...(m.ch>2?['aa','command']:[])];
-enemies.forEach((type,i)=>{let x=m.ch===0&&m.n===0?[11,12,14,13][i]:w-5-(i%3)*2,y=m.ch===0&&m.n===0?mid+[0,-2,2,1][i]:mid-5+Math.floor(i/3)*3;road(x,y);let u=add(s,type,1,x,y);if(i%3===0)u.entrenched=true;if(m.type==='strike'&&i===2)u.command=true;});
+enemies.forEach((type,i)=>{let x=m.ch===0&&m.n===0?[8,10,12,13][i]:w-5-(i%3)*2,y=m.ch===0&&m.n===0?mid+[0,-2,2,1][i]:mid-5+Math.floor(i/3)*3;road(x,y);let u=add(s,type,1,x,y);if(i%3===0)u.entrenched=true;if(m.type==='strike'&&i===2)u.command=true;});
 if(navalMap(m)){
  // A proper opposing task group: smaller waters get three ships, coastal seas
  // start with a four/five-vessel combined-arms fleet. No inflated weapon stats.
@@ -762,6 +762,20 @@ function goalFor(s,u,visible,contacts){
   const remembered=Object.values(contacts).filter(v=>D[v.type]?.branch==='Navy').sort((a,b)=>dist(u,a)-dist(u,b))[0];
   return remembered||{x:Math.max(3,Math.floor(s.w*.36)),y:s.h-3};
  }
+ // The field commander protects ACTUAL mission objectives, not the closest
+ // arbitrary neutral income building while the player advances unopposed.
+ if(s.mission.type==='hold'){
+  const relay=s.tiles.find(t=>t.facility==='relay');
+  if(relay?.owner===0)return relay;
+ }
+ if(s.mission.type==='seize'){
+  const lost=s.tiles.filter(t=>t.objective&&t.owner===0).sort((a,b)=>dist(a,u)-dist(b,u));
+  if(lost.length)return lost[0];
+ }
+ if(s.mission.type==='protect'||s.mission.type==='convoy'){
+  const courier=s.units.find(v=>v.courier&&v.hp>0);if(courier)return courier;
+ }
+ if(s.mission.type==='capture'&&!unit&&!u.sentry)return {x:Math.floor(s.w*.43),y:Math.floor(s.h/2)};
  if(u.assault&&s.mission.type==='counterbattery'){
   return alive(s,0).filter(v=>v.battery).sort((a,b)=>dist(u,a)-dist(u,b))[0]||s.home;
  }
@@ -843,7 +857,9 @@ function tacticalPosition(s,u,goal,visible,contactHistory){
   const danger=tacticalThreat(s,u,p,enemySight);
   const close=hostile.length?Math.min(...hostile.map(v=>dist(p,v))):99;
   const cover=({forest:6,ruins:9,hill:5}[tile(s,p.x,p.y)?.terrain]||0);
-  const objective=tile(s,p.x,p.y)?.facility&&tile(s,p.x,p.y).owner!==1&&has(u,'capture')?30:0;
+  const here=tile(s,p.x,p.y);
+  const objective=here?.facility&&has(u,'capture')?
+   (here.owner===0?30:here.owner===-1&&s.mission.type==='seize'?8:0):0;
   const screened=branch==='Navy'?friends.filter(v=>D[v.type].branch==='Navy'&&dist(p,v)<=3).length*4:0;
   const cohesion=friends.filter(v=>dist(p,v)<=2).length*1.4;
   const standoff=close<ideal?-(ideal-close)*10:0;
