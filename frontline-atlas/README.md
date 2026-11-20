@@ -1,3 +1,28 @@
+# Frontline Atlas v10 — The Tactical Rebuild
+
+v10 is a **rules-and-pacing redesign**, not another cosmetic pass. Previous v9.8 combat often felt hollow because shooting only removed HP, objectives could be won by idling, indirect weapons used team-wide sight without actual observers, a fire action incorrectly counted as physical relocation, and regular shots triggered free retaliation even without prepared ambushes.
+
+The game now has a coherent combined-arms loop:
+
+- **Suppression and morale:** each hit applies pressure; machine guns and artillery suppress harder; 60+ pressure pins ground units and temporarily blocks movement, firing and captures; medic aid, active command support and entrenchment stabilize forces; isolated badly wounded infantry can surrender under extreme pressure. Navy/air are exempt from ground-style pinning.
+- **Overwatch:** Infantry and armor can spend an action to cover an approach (`G` or one compact button). Guarding troops fire their ready gun at moving enemies only while in real line-of-sight and actual range, consuming real ammo, once per activation. Tile-by-tile moves halt if overwatch pins or kills a moving squad. Orange markers warn about visible enemy defensive fire.
+- **Scouting and artillery:** distant indirect ground fire requires a scout, infantry observer, command unit or the gun's own sight. Recon troops can split their single movement allowance among multiple clicks without gaining free distance.
+- **Objective security and deployments:** a relay needs a living, unpinned friendly garrison and no enemy within two tiles; the enemy warns you before a budgeted counterattack. Captured, secure towns and factories can deploy affordable land troops adjacent to their positions, with next-turn readiness and a two-tile hostile exclusion radius. Rear HQ pads and convoy special restrictions remain.
+- **Responsive actions:** firing no longer falsely sets the `repositionedTurn` flag; ordinary ground artillery can operate its other ready mounts while stationary. Clicking a target automatically selects a valid remaining weapon, while Shift-click previews without spending ammo. Weapon-range and red-target markings include **all ready guns**.
+- **Tactical pacing:** central scout/infantry/machine-gunner vanguards accelerate first contact; ineffective enemies do not consume a large animated turn delay. A limited +1 supply per kill (maximum +2 player supply each turn) rewards decisive engagements without removing the baseline 1–2 supply economy.
+- **Meaningful difficulty:** Easy/Normal/Hard now use exactly the same base HP and firepower. Instead, enemy reserve supply, starting forward pressure and response cadence scale. A harder battle should be an involved fight, not a slog through arbitrarily inflated HP bars.
+- **Original sound design:** an opt-in-by-default WebAudio battle soundscape (synthesized shots, hits, explosions, movement, garrison alerts and capture chimes) is bundled locally without external copyrighted assets. Turn it off via **Settings → Sound effects**; browser audio may need a click before it starts.
+
+All v9.x research progress, armory/research, 80 missions, opponent fleet battles, saved game version `frontline-atlas-v3`, operator mode, Roblox-style 3D free camera, square mountain cliffs, terrain, ship models, and particle animations are preserved.
+
+**Read [TACTICAL-DESIGN-AUDIT.md](TACTICAL-DESIGN-AUDIT.md)** for the reference study, precise reasons earlier versions felt hollow, reference-source limitations, mechanic-by-mechanic comparison, objective acceptance criteria and transparent remaining gaps. This is a foundation rebuild, not a claim of full one-to-one NiC parity or that a human playtest has already validated the final balance.
+
+## Verification
+
+Run `node --test *.test.cjs` inside `frontline-atlas/` and check GitHub Actions on pull request #10. Added scenario-based tests for morale, overwatch, split recon moves, indirect fire observers, next-gun auto-firing, forward spawn security, relay counterattacks, difficulty invariants and sound generation. Live GPU and human playtests remain necessary to verify game feel and tactical readability.
+
+---
+
 # Frontline Atlas v9.8 — Fleet Tactics & Action-Economy Balance
 
 ## The navy is still devastating—but needs combined arms
