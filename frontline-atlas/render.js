@@ -570,7 +570,7 @@ makeBackdrop(s){const b=s.mission.biome,seed=s.mission.seed||1,isToy=b==='toy',s
  }
  for(let i=0;i<38;i++){const angle=i/38*Math.PI*2,dist=27+(i%6)*1.9,x=Math.cos(angle)*dist,z=Math.sin(angle)*dist,r=(Math.sin(i*2.7+seed*.2)+1)*.5;if(isToy){const q=box(this.backdrop,i%3===0?0x846e5a:0x9e856a,x,3.1,z,2.5,6,2.3);q.rotation.y=angle+.15;if(i%6===0)box(this.backdrop,0xb39c75,x,6.3,z,2.7,.3,2.5);}else if(urban){box(this.backdrop,[0x5a6870,0x788996,0x677c85][i%3],x,1.5+r*2,z,1.2+r*1.5,3+r*4,1.1+r*.9);}else if(high||snow){const peak=crag(this.backdrop,snow?0xdde6e8:i%3===0?0xa5b5bc:0x637d80,x,-.35,z,4+r*1.4,5+r*3,4+r*1.4,i%5);peak.rotation.y=i*.3;}else if(!desert){for(let k=0;k<2;k++)cone(this.backdrop,0x294c49,x+k*.9,1.2,z+.3*k,.9,2.5+r*2);}else{const dune=box(this.backdrop,0xd0b58a,x,.25,z,3,.5+r,2.6);dune.rotation.y=i*.3;}}if(high||snow||b==='coast'||b==='islands'){for(let i=0;i<11;i++){const x=(i-5)*5;const peak=crag(this.backdrop,high?0x768a9e:snow?0xe3e9ee:0x638b93,x,-.34,-31,6,8+(i%4)*2,4.5,i%5);peak.rotation.y=i*.3;}}const storm=(s.mission.n%5===3),snowfall=b==='snow'&&s.mission.n%2===0;for(let i=0;i<(storm?23:11);i++){let angle=i/23*Math.PI*2,dist=25+(i%4)*2,x=Math.cos(angle)*dist,z=Math.sin(angle)*dist,y=8+(i%4)*.7;ball(this.backdrop,storm?0x657983:0xe2e5e0,x,y,z,2.1,.42,1.3);ball(this.backdrop,storm?0x4a5f6a:0xf1eee1,x+.9,y+.14,z+.3,1.3,.51,1.1);}if(storm||snowfall){for(let i=0;i<76;i++){let x=Math.sin(i*12.98+seed)*s.w*.48,z=Math.cos(i*9.13+seed)*s.h*.48,y=1.9+(i%11)*.27;if(snowfall)ball(this.backdrop,0xffffff,x,y,z,.035,.035,.035);else rod(this.backdrop,0xa4b8be,[x,y,z],[x-.12,y-.35,z+.09],.009);}}}
 batchTerrain(){if(!this.renderer)return;this.tileGroup.updateMatrixWorld(true);let buckets=new Map(),remove=[];this.tileGroup.traverse(o=>{if(!o.isMesh||o.userData.terrainSurface||o.userData.roadRamp||o.parent.userData.facility)return;let key=o.geometry.uuid+o.material.uuid;if(!buckets.has(key))buckets.set(key,[]);buckets.get(key).push(o);remove.push(o);});for(let meshes of buckets.values()){let first=meshes[0],batch=new T.InstancedMesh(first.geometry,first.material,meshes.length);meshes.forEach((m,i)=>batch.setMatrixAt(i,m.matrixWorld));batch.castShadow=true;batch.receiveShadow=true;batch.instanceMatrix.needsUpdate=true;this.tileGroup.add(batch);}remove.forEach(o=>o.parent.remove(o));}
-sync(){this.dirty=true;let s=this.state;const present=new Set(s.units.map(u=>u.id));for(const [id,g]of this.groups)if(!present.has(id)){this.unitGroup.remove(g);this.groups.delete(id);this.labelsMap.get(id)?.remove();this.labelsMap.delete(id);}this.clear(this.fogGroup);s.seen=s.seen||[];for(let t of s.tiles){if(t.terrain==='void')continue;const index=t.y*s.w+t.x;if(A.tileVisible(s,t)||t.pad)s.seen[index]=true;else{const seen=!!s.seen[index],shade=this.software?new T.Color(this.groundColor||TOY_FELT).multiplyScalar(seen?.82:.65).getHex():0x26372d;const overlay=box(this.fogGroup,shade,t.x-s.w/2+.5,A.elevation(s,t)+.075,t.y-s.h/2+.5,.998,.018,.998);if(!this.software)overlay.material=seen?this.fogSeenMat:this.fogHiddenMat;}}s.units.forEach(u=>{if(u.hp<=0||u.carried||!A.visible(s,u)){let g=this.groups.get(u.id);if(g)g.visible=false;let l=this.labelsMap.get(u.id);if(l)l.style.display='none';return;}let g=this.groups.get(u.id);if(!g){g=model(u.type,u.team);g.userData.unitId=u.id;if(A.D[u.type].branch==='Navy'){
+sync(){this.dirty=true;let s=this.state;const present=new Set(s.units.map(u=>u.id));for(const [id,g]of this.groups)if(!present.has(id)){this.unitGroup.remove(g);this.groups.delete(id);this.labelsMap.get(id)?.remove();this.labelsMap.delete(id);}this.clear(this.fogGroup);this.fogCells=new Map();s.seen=s.seen||[];for(let t of s.tiles){if(t.terrain==='void')continue;const index=t.y*s.w+t.x;if(A.tileVisible(s,t)||t.pad)s.seen[index]=true;else{const seen=!!s.seen[index],shade=this.software?new T.Color(this.groundColor||TOY_FELT).multiplyScalar(seen?.82:.65).getHex():0x26372d;const overlay=box(this.fogGroup,shade,t.x-s.w/2+.5,A.elevation(s,t)+.075,t.y-s.h/2+.5,.998,.018,.998);if(!this.software)overlay.material=seen?this.fogSeenMat:this.fogHiddenMat;this.fogCells.set(index,overlay);}}s.units.forEach(u=>{if(u.hp<=0||u.carried||!A.visible(s,u)){let g=this.groups.get(u.id);if(g)g.visible=false;let l=this.labelsMap.get(u.id);if(l)l.style.display='none';return;}let g=this.groups.get(u.id);if(!g){g=model(u.type,u.team);g.userData.unitId=u.id;if(A.D[u.type].branch==='Navy'){
   const wake=new T.Group();wake.userData.wake=true;g.add(wake);g.userData.wake=wake;
   for(let k=0;k<3;k++)for(let side of [-1,1]){
    const q=box(wake,0x91c9c9,side*(.19+k*.10),.025,-.48-k*.18,.12+k*.05,.012,.07);
@@ -711,7 +711,27 @@ retireEffect(e){
    const distance=Math.max(0,Math.min(count,ease*count));
    const idx=Math.min(count-1,Math.floor(distance)),from=idx===0?a.from:a.path[idx-1],to=a.path[idx],mix=progress>=1?1:distance-idx;
    const gx=from.x+(to.x-from.x)*mix,gy=from.y+(to.y-from.y)*mix;
+   const tileX=Math.round(gx),tileY=Math.round(gy);
+   if(u.team===0&&a.lastReveal!==idx){
+    a.lastReveal=idx;
+    // Vision travels WITH the unit through each path square, not only its destination.
+    // Re-use the existing fog geometry rather than rebuilding it each animation frame.
+    const range=A.has(u,'recon')?6:4;
+    for(let yy=Math.max(0,tileY-range);yy<=Math.min(s.h-1,tileY+range);yy++)
+     for(let xx=Math.max(0,tileX-range);xx<=Math.min(s.w-1,tileX+range);xx++){
+      const t=A.tile(s,xx,yy);
+      if(!t||t.terrain==='void'||Math.abs(xx-tileX)+Math.abs(yy-tileY)>range)continue;
+      if(!A.lineOfSight(s,{x:tileX,y:tileY},t))continue;
+      const id=yy*s.w+xx;s.seen[id]=true;
+      const fog=this.fogCells?.get(id);if(fog)fog.visible=false;
+     }
+   }
    g.position.set(gx-s.w/2+.5,A.groundHeight(s,gx,gy)+(A.D[u.type].branch==='Air'&&!u.landed?1.1:.04),gy-s.h/2+.5);
+   if(u.team===1){
+    const tile=A.tile(s,tileX,tileY);
+    g.visible=!!tile&&A.tileVisible(s,tile);
+    const label=this.labelsMap.get(u.id);if(label)label.style.display=g.visible?'block':'none';
+   }
    if(A.D[u.type].branch==='Infantry')g.position.y+=Math.abs(Math.sin(distance*Math.PI*3))*.016;
    const desired=Math.atan2(to.x-from.x,to.y-from.y);
    g.rotation.y+=Math.atan2(Math.sin(desired-g.rotation.y),Math.cos(desired-g.rotation.y))*.23;
