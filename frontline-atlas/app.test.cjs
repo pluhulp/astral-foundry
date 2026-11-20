@@ -151,3 +151,27 @@ test('new audio setting and overwatch quick action preserve the no-menu tactical
  assert(u.guard);assert(u.fired);
  assert(h.node('unit-panel').innerHTML.includes('OVERWATCH READY'));
 });
+
+test('clicking a tough enemy repeatedly auto-selects remaining Leviathan guns without weapon menu clicks',()=>{
+ const h=setup(),s=h.view().state;s.tiles.forEach(t=>{if(t.terrain!=='void')t.terrain='plain'});
+ s.units=[];s.phase='combat';s.side=0;s.result=null;
+ const ship=A.add(s,'battleship',0,5,8),target=A.add(s,'battleship',1,10,8);
+ target.hp=target.maxHp=4000;h.view().onClick(ship);
+ const initial=ship.ammo.slice();
+ for(let i=0;i<4;i++){h.view().onClick(target);assert.equal(ship.used.filter(Boolean).length,i+1);}
+ assert.equal(ship.ammo.reduce((n,v,i)=>n+initial[i]-v,0),4);
+ assert.equal(ship.fired,true);assert(target.hp<4000);
+ assert(h.node('unit-panel').innerHTML.includes('Secondary guns'));
+});
+test('shift-click previews a next available gun after the first gun has fired without spending ammo',()=>{
+ const h=setup(),s=h.view().state;s.tiles.forEach(t=>{if(t.terrain!=='void')t.terrain='plain'});
+ s.units=[];s.phase='combat';s.side=0;s.result=null;
+ const ship=A.add(s,'battleship',0,5,8),target=A.add(s,'battleship',1,10,8);
+ target.hp=target.maxHp=4000;h.view().onClick(ship);h.view().onClick(target);
+ const old=ship.ammo.slice(),hp=target.hp;
+ h.view().onClick(target,{shiftKey:true});
+ assert(h.node('unit-panel').innerHTML.includes('Fire weapon'));
+ assert.notEqual(ship.weapon,0,'preview should select next legal battery');
+ assert.equal(target.hp,hp);assert.deepEqual(ship.ammo,old);
+ h.click('confirm-fire');assert(target.hp<hp);
+});
