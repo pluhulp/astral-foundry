@@ -53,7 +53,7 @@ const SAVE_KEY='frontline_atlas_reforged_v1';
 let save={stars:12,unlocked:['rifle','mg','scout','supply','boat'],wins:[],scenario:0,difficulty:'standard'};
 try{let s=JSON.parse(localStorage.getItem(SAVE_KEY));if(s&&Array.isArray(s.unlocked))save={...save,...s}}catch{}
 const persist=()=>localStorage.setItem(SAVE_KEY,JSON.stringify(save));
-let game=null,selected=null,mode='select',ranges=new Map(),hover=null,view={x:0,y:0,zoom:1,rot:0},drag=null,dirty=true,turnRunning=false,nextId=1,anims=[],effects=[];
+let game=null,selected=null,mode='select',ranges=new Map(),hover=null,deployType=null,view={x:0,y:0,zoom:1,rot:0},drag=null,dirty=true,turnRunning=false,nextId=1,anims=[],effects=[];
 const rnd=(s)=>{let n=Math.sin(s*134.77+18.33)*43758.5;return n-Math.floor(n)};
 const key=(x,y)=>x+','+y,dist=(a,b)=>Math.abs(a.x-b.x)+Math.abs(a.y-b.y),inside=(x,y)=>game&&x>=0&&y>=0&&x<game.w&&y<game.h;
 const tile=(x,y)=>inside(x,y)?game.map[y][x]:null;
@@ -80,7 +80,7 @@ function canEnter(u,t){return t&&(uDomain(u)==='air'||(uDomain(u)==='sea'?(t.typ
 function uDomain(u){return UNIT[u.type].domain}
 function positionsFor(t,team){let arr=[];for(let y=0;y<game.h;y++)for(let x=0;x<game.w;x++)if((team===1?x<=3:x>=game.w-4)&&canEnter({type:t},tile(x,y))&&!occupied(x,y))arr.push({x,y});return arr}
 function spawn(type,team,x,y){if(!inside(x,y)||occupied(x,y)||!canEnter({type},tile(x,y))){let pool=positionsFor(type,team);pool.sort((a,b)=>Math.abs(a.y-y)+Math.abs(a.x-x)-Math.abs(b.y-y)-Math.abs(b.x-x));if(!pool.length)return false;x=pool[0].x;y=pool[0].y}game.units.push(unit(type,team,x,y));return true}
-function begin(index){let s=SCENARIOS[index];game={...s,map:makeMap(s),units:[],turn:1,tix:10,enemyTix:10,cap:7,enemyCap:8,log:[],over:false};nextId=1;
+function begin(index){deployType=null;let s=SCENARIOS[index];game={...s,map:makeMap(s),units:[],turn:1,tix:10,enemyTix:10,cap:7,enemyCap:8,log:[],over:false};nextId=1;
  s.start.forEach((u,i)=>spawn(u,1,1+(i%3),1+Math.floor(i/3)*2+(uDomain({type:u})==='sea'?s.h-6:0)));
  s.enemy.forEach((u,i)=>spawn(u,2,s.w-2-(i%3),1+Math.floor(i/3)*2+(uDomain({type:u})==='sea'?s.h-6:0)));
  selected=null;mode='select';ranges.clear();view={x:0,y:0,zoom:1};$('menu').classList.add('hidden');$('result').classList.add('hidden');resize();update();say(s.name+' — secure the objectives');dirty=true;
@@ -139,9 +139,25 @@ function update(){if(!game)return;$('opname').textContent=game.name;$('theater')
  if(u.team===1){action('MOVE',()=>{mode='move';ranges=reachable(u);dirty=true},u.moved||u.suppressed||u.fuel<=0,'ghost');action('ATTACK',()=>{mode='attack';dirty=true},u.attacked||!u.ammo||!getTargets(u).length,'danger');if(SECONDARY[u.type])action(SECONDARY[u.type].name+' ('+u.auxAmmo+')',()=>{mode='aux';dirty=true},u.auxUsed||!u.auxAmmo||!getTargets(u,true).length,'danger');if(u.type==='supply')action('RESUPPLY',()=>{heal(u);update()},u.supplied,'primary');if(uDomain(u)==='land'&&UNIT[u.type].armor<3&&u.type!=='supply')action('DIG IN',()=>entrench(u),!canEntrench(u),'ghost');if(['mg','at','bazooka','tank','heavy','assault','destroyer','cruiser'].includes(u.type))action('OVERWATCH',()=>{u.overwatch=true;u.attacked=true;u.moved=true;select(null);say('Overwatch armed')},u.attacked||!u.ammo||u.moved,'primary');action('HOLD / SKIP',()=>{u.attacked=true;u.moved=true;select(null)},u.moved&&u.attacked);action('CANCEL',()=>select(null),false,'ghost')}
  else action('INSPECT',()=>select(null));}
 function say(t){let el=$('toast');el.textContent=t;el.classList.remove('hidden');clearTimeout(say.timer);say.timer=setTimeout(()=>el.classList.add('hidden'),2500)}
+function deploymentTiles(type,team=1){
+ if(!game||!UNIT[type])return [];
+ let list=[];for(let y=0;y<game.h;y++)for(let x=0;x<game.w;x++){
+ let t=tile(x,y);if(!canEnter({type},t)||occupied(x,y))continue;
+ let rear=team===1?x<=2:x>=game.w-3;
+ let forward=team===1&&game.map.some((row,yy)=>row.some((v,xx)=>v.site&&v.owner===1&&Math.abs(xx-x)+Math.abs(yy-y)<=1));
+ let threatened=game.units.some(v=>v.team!==team&&dist(v,{x,y})<=2);
+ if(rear||(forward&&!threatened))list.push({x,y});
+ }
+ return list;
+}
+function deployAt(type,x,y){
+ if(!game||game.over||!save.unlocked.includes(type)||!deploymentTiles(type).some(p=>p.x===x&&p.y===y))return false;
+ let d=UNIT[type];if(game.tix<d.cost||game.units.filter(u=>u.team===1).length>=game.cap)return false;
+ if(!spawn(type,1,x,y))return false;game.tix-=d.cost;deployType=null;mode='select';say(d.name+' deployed');update();dirty=true;return true;
+}
 function recruit(type,team=1){if(!game||game.over)return false;let n=game.units.filter(u=>u.team===team).length,d=UNIT[type],cash=team===1?'tix':'enemyTix',cap=team===1?'cap':'enemyCap';
  if(n>=game[cap]||game[cash]<d.cost)return false;
- let pool=positionsFor(type,team).filter(p=>team===1?p.x<=2:p.x>=game.w-3);if(!pool.length)return false;
+ let pool=deploymentTiles(type,team).filter(p=>team===1?p.x<=2:p.x>=game.w-3);if(!pool.length)return false;
  pool.sort((a,b)=>a.y-b.y);let p=pool[Math.floor(rnd(game.turn*9+n*17)*(pool.length))];if(!spawn(type,team,p.x,p.y))return false;game[cash]-=d.cost;if(team===1)say(d.name+' deployed');update();dirty=true;return true}
 function endTurn(){if(!game||game.over||turnRunning)return;turnRunning=true;selected=null;mode='select';update();setTimeout(()=>{resolveObjectives(1);for(let u of game.units){if(u.team===1)u.suppressed=0;else u.overwatch=false}enemyTurn();resolveObjectives(2);if(!game.over){game.turn++;for(let u of game.units){u.moved=false;u.attacked=false;u.auxUsed=false;u.supplied=false;if(u.team===1)u.overwatch=false;else u.suppressed=0}let ownSites=game.map.flat().filter(t=>t.site&&t.owner===1).length,enemySites=game.map.flat().filter(t=>t.site&&t.owner===2).length;game.tix=Math.min(35,game.tix+2+ownSites);game.enemyTix=Math.min(35,game.enemyTix+2+enemySites);say('Turn '+game.turn+' — +'+(2+ownSites)+' tix');}turnRunning=false;update();dirty=true},180)}
 function enemyTurn(){let enemies=game.units.filter(u=>u.team===2);for(let u of enemies){if(!game.units.includes(u)||game.over)continue;
@@ -165,7 +181,7 @@ for(let [branch,keys] of Object.entries(branches)){let label=document.createElem
  content.innerHTML='<h2 class="section-title">CAMPAIGN OPERATIONS</h2><div class="cards" id="missions"></div><p class="small">Choose an operation to start a fresh battle. Your blueprint research and campaign rewards are saved locally.</p>';let list=$('missions');SCENARIOS.forEach((s,i)=>{let card=document.createElement('button');card.className='mission';card.innerHTML='<small>OPERATION '+String(i+1).padStart(2,'0')+' · '+s.region+'</small><h3>'+s.name+(save.wins.includes(i)?' ✓':'')+'</h3><p>'+s.description+'</p><small>FIRST CLEAR: ★ '+s.reward+' · '+(s.sea?'LAND & NAVAL':'LAND WARFARE')+'</small>';card.onclick=()=>{save.scenario=i;persist();begin(i)};list.appendChild(card)})}
 $('home').onclick=showMenu;$('resume').onclick=()=>{if(game&&!game.over){$('menu').classList.add('hidden');resize()}else begin(save.scenario)};$('openTech').onclick=()=>renderMenu('tech');$('openHelp').onclick=()=>renderMenu('help');$('difficulty').onclick=()=>{let modes=['standard','veteran','expert'];save.difficulty=modes[(modes.indexOf(save.difficulty||'standard')+1)%3];persist();renderMenu('missions')};$('end').onclick=endTurn;
 const recruitBox=document.createElement('div');recruitBox.className='overlay';recruitBox.style='top:15px;left:50%;transform:translateX(-50%);display:flex;gap:5px;flex-wrap:wrap;max-width:45%;justify-content:center';$('battle').appendChild(recruitBox);
-function updateRecruit(){if(!game)return;recruitBox.innerHTML='';let title=document.createElement('button');title.textContent='＋ REINFORCEMENTS';title.className='ghost';recruitBox.appendChild(title);let menu=document.createElement('div');menu.style='display:none;width:100%;padding:9px;background:#1a342be8;border:2px solid #799273;border-radius:5px;display:flex;gap:5px;flex-wrap:wrap';for(let type of save.unlocked){if(!game.sea&&UNIT[type].domain==='sea')continue;let b=document.createElement('button');b.textContent=UNIT[type].name+' ¤'+UNIT[type].cost;b.disabled=game.tix<UNIT[type].cost||game.units.filter(u=>u.team===1).length>=game.cap;b.onclick=()=>{recruit(type);updateRecruit()};menu.appendChild(b)}recruitBox.appendChild(menu);let open=false;menu.style.display='none';title.onclick=()=>{open=!open;menu.style.display=open?'flex':'none';updateRecruitButtons(menu)};}
+function updateRecruit(){if(!game)return;recruitBox.innerHTML='';let title=document.createElement('button');title.textContent='＋ REINFORCEMENTS';title.className='ghost';recruitBox.appendChild(title);let menu=document.createElement('div');menu.style='display:none;width:100%;padding:9px;background:#1a342be8;border:2px solid #799273;border-radius:5px;display:flex;gap:5px;flex-wrap:wrap';for(let type of save.unlocked){if(!game.sea&&UNIT[type].domain==='sea')continue;let b=document.createElement('button');b.textContent=UNIT[type].name+' ¤'+UNIT[type].cost;b.disabled=game.tix<UNIT[type].cost||game.units.filter(u=>u.team===1).length>=game.cap;b.onclick=()=>{deployType=type;select(null);mode='deploy';say('Choose a highlighted deployment tile');dirty=true};menu.appendChild(b)}recruitBox.appendChild(menu);let open=false;menu.style.display='none';title.onclick=()=>{open=!open;menu.style.display=open?'flex':'none';updateRecruitButtons(menu)};}
 function updateRecruitButtons(menu){for(let b of menu.querySelectorAll('button')){let t=Object.keys(UNIT).find(k=>b.textContent.startsWith(UNIT[k].name+' ¤'));if(t)b.disabled=game.tix<UNIT[t].cost||game.units.filter(u=>u.team===1).length>=game.cap;}}
 const originalUpdate=update;update=function(){let previouslyOpen=recruitBox.querySelector('div')?.style.display==='flex';originalUpdate();updateRecruit();if(previouslyOpen){let d=recruitBox.querySelector('div');if(d){d.style.display='flex';updateRecruitButtons(d)}}};
 const tw=58,th=30,ht=12;
@@ -246,7 +262,7 @@ function drawUnit(u){let track=anims.find(a=>a.id===u.id),elapsed=track?Math.min
 function render(){if(!dirty||!game||$('menu').classList.contains('hidden')===false)return;dirty=false;let dpr=Math.min(devicePixelRatio||1,2),w=canvas.width/dpr,h=canvas.height/dpr;ctx.setTransform(dpr,0,0,dpr,0,0);let bg=ctx.createLinearGradient(0,0,0,h);bg.addColorStop(0,'#a7c1b3');bg.addColorStop(1,'#638c7d');ctx.fillStyle=bg;ctx.fillRect(0,0,w,h);
  for(let y=0;y<game.h;y++)for(let x=0;x<game.w;x++){let t=tile(x,y);let v=terrainColor[t.type];diamond(x,y,v,'#2a4b3b33');if(t.site){let p=project(x+.5,y+.5);ctx.fillStyle=t.owner===1?'#6ee4bf':t.owner===2?'#ff9980':'#ffd783';ctx.beginPath();ctx.arc(p.x,p.y,5*p.scale,0,7);ctx.fill()}}
  for(let y=0;y<game.h;y++)for(let x=0;x<game.w;x++){let t=tile(x,y);if(t.type==='forest'||t.type==='town'||t.type==='hill'||t.type==='trench'||t.type==='bridge'||t.type==='shore'||t.decor>.6)decor(x,y,t)}
- if(selected?.team===1){let r=mode==='move'||mode==='select'?ranges:new Map();for(let k of r.keys()){let [x,y]=k.split(',').map(Number);diamond(x,y,'#4abda466','#60e9cc')}if(mode==='attack'||mode==='select'||mode==='aux'){let u=selected,p=UNIT[u.type];for(let y=0;y<game.h;y++)for(let x=0;x<game.w;x++)if(mode==='aux'?(SECONDARY[u.type]&&dist(u,{x,y})<=SECONDARY[u.type].range&&dist(u,{x,y})>0):inRange(u,x,y)){let a=occupied(x,y);if(a&&a.team===2&&canSee(1,x,y))diamond(x,y,'#ef7f6c88','#ffb38c')}}}
+ if(mode==='deploy'&&deployType){for(let p of deploymentTiles(deployType))diamond(p.x,p.y,'#83d0a955','#91e4c3')}if(selected?.team===1){let r=mode==='move'||mode==='select'?ranges:new Map();for(let k of r.keys()){let [x,y]=k.split(',').map(Number);diamond(x,y,'#4abda466','#60e9cc')}if(mode==='attack'||mode==='select'||mode==='aux'){let u=selected,p=UNIT[u.type];for(let y=0;y<game.h;y++)for(let x=0;x<game.w;x++)if(mode==='aux'?(SECONDARY[u.type]&&dist(u,{x,y})<=SECONDARY[u.type].range&&dist(u,{x,y})>0):inRange(u,x,y)){let a=occupied(x,y);if(a&&a.team===2&&canSee(1,x,y))diamond(x,y,'#ef7f6c88','#ffb38c')}}}
  game.units.slice().sort((a,b)=>(a.x+a.y)-(b.x+b.y)).forEach(u=>{if(u.team===1||canSee(1,u.x,u.y))drawUnit(u)});anims=anims.filter(a=>Date.now()-a.start<a.duration);
  effects=effects.filter(e=>Date.now()-e.start<460);
  for(let effect of effects){let life=(Date.now()-effect.start)/460,q=project(effect.x+.5,effect.y+.5,.75),s=q.scale;ctx.save();
@@ -261,13 +277,13 @@ function render(){if(!dirty||!game||$('menu').classList.contains('hidden')===fal
  canvas.addEventListener('pointerdown',e=>{if(e.button===2){drag={x:e.clientX,y:e.clientY};canvas.setPointerCapture(e.pointerId)}});
  canvas.addEventListener('pointermove',e=>{if(drag){view.x+=e.clientX-drag.x;view.y+=e.clientY-drag.y;drag={x:e.clientX,y:e.clientY};dirty=true;return}let r=canvas.getBoundingClientRect();let h=hit(e.clientX-r.left,e.clientY-r.top);if(h?.x!==hover?.x||h?.y!==hover?.y){hover=h;dirty=true}});
  canvas.addEventListener('pointerup',e=>{if(e.button===2)drag=null});canvas.addEventListener('contextmenu',e=>e.preventDefault());
- canvas.addEventListener('click',e=>{if(!game||game.over||turnRunning)return;let r=canvas.getBoundingClientRect(),p=hit(e.clientX-r.left,e.clientY-r.top);if(!p)return;let u=occupied(p.x,p.y);
+ canvas.addEventListener('click',e=>{if(!game||game.over||turnRunning)return;let r=canvas.getBoundingClientRect(),p=hit(e.clientX-r.left,e.clientY-r.top);if(!p)return;if(mode==='deploy'&&deployType){if(!deployAt(deployType,p.x,p.y))say('Invalid deployment location');return}let u=occupied(p.x,p.y);
  if(selected?.team===1&&u?.team===2&&strike(selected,u,mode==='aux')){select(selected);return}
  if(selected?.team===1&&!u&&!selected.moved&&moveUnit(selected,p.x,p.y)){select(game.units.includes(selected)?selected:null);return}
  if(u){select(u);return}select(null)});
  canvas.addEventListener('wheel',e=>{e.preventDefault();view.zoom=Math.min(2.1,Math.max(.52,view.zoom*(e.deltaY>0?.90:1.1)));dirty=true},{passive:false});
- window.addEventListener('keydown',e=>{if(!$('menu').classList.contains('hidden'))return;if(e.key==='Escape')select(null);if(e.key.toLowerCase()==='q'){view.rot=(view.rot+3)%4;dirty=true}if(e.key.toLowerCase()==='e'){view.rot=(view.rot+1)%4;dirty=true}if(e.key===' '||e.key==='Enter'){e.preventDefault();endTurn()}let delta=28;if(e.key==='a'||e.key==='ArrowLeft')view.x+=delta;if(e.key==='d'||e.key==='ArrowRight')view.x-=delta;if(e.key==='w'||e.key==='ArrowUp')view.y+=delta;if(e.key==='s'||e.key==='ArrowDown')view.y-=delta;if(['a','d','w','s','ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key))dirty=true});
+ window.addEventListener('keydown',e=>{if(!$('menu').classList.contains('hidden'))return;if(e.key==='Escape'){deployType=null;select(null)}if(e.key.toLowerCase()==='q'){view.rot=(view.rot+3)%4;dirty=true}if(e.key.toLowerCase()==='e'){view.rot=(view.rot+1)%4;dirty=true}if(e.key===' '||e.key==='Enter'){e.preventDefault();endTurn()}let delta=28;if(e.key==='a'||e.key==='ArrowLeft')view.x+=delta;if(e.key==='d'||e.key==='ArrowRight')view.x-=delta;if(e.key==='w'||e.key==='ArrowUp')view.y+=delta;if(e.key==='s'||e.key==='ArrowDown')view.y-=delta;if(['a','d','w','s','ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key))dirty=true});
  renderMenu('missions');
- window.__frontlineTest={UNIT,SECONDARY,SCENARIOS,RESEARCH,get state(){return game},begin,recruit,reachable,routeTo,damage,endTurn,canSee,moveUnit,spotter,strike,entrench,canEntrench,capture,contesting,resolveObjectives};
+ window.__frontlineTest={UNIT,SECONDARY,SCENARIOS,RESEARCH,get state(){return game},begin,recruit,deployAt,deploymentTiles,reachable,routeTo,damage,endTurn,canSee,moveUnit,spotter,strike,entrench,canEntrench,capture,contesting,resolveObjectives};
 })();
 </script></body></html>
