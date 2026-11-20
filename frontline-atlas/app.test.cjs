@@ -138,3 +138,33 @@ test('resuming an older interception upgrades flagship hull proportionally witho
  assert.equal(h.view().state.version,3);
  assert.deepEqual(h.saved().profile.completed,{});
 });
+
+test('the field manual and one-click combat controls expose overwatch without dense new menus',()=>{
+ const h=setup();place(h,'rifle');h.node('end-turn').onclick();
+ const u=A.alive(h.view().state,0).find(u=>u.type==='rifle');
+ h.view().onClick(u);
+ assert(h.node('unit-panel').innerHTML.includes('Overwatch'));
+ h.click('unit-action','overwatch');
+ assert.equal(u.guard,true);
+ assert(h.node('unit-panel').innerHTML.includes('OVERWATCH'));
+ assert(u.moved&&u.fired);
+});
+test('optional sound effects are disabled by default and persist as a user setting',()=>{
+ const h=harness(A,source);h.click('settings');
+ assert(h.node('screen-content').innerHTML.includes('Tactical sound effects'));
+ assert.equal(h.saved().profile.settings.sound,false);
+ h.change('sound',true);
+ assert.equal(h.saved().profile.settings.sound,true);
+ h.click('mission',0);h.click('deploy');
+ assert.equal(h.view().soundEnabled,true);
+});
+test('adjacent infantry can claim an abandoned enemy hull with a single battlefield click',()=>{
+ const h=setup();place(h,'rifle');h.node('end-turn').onclick();
+ const s=h.view().state,inf=A.alive(s,0).find(u=>u.type==='rifle');
+ const p=[{x:inf.x+1,y:inf.y},{x:inf.x-1,y:inf.y},{x:inf.x,y:inf.y+1},{x:inf.x,y:inf.y-1}].find(p=>A.tile(s,p.x,p.y)&&A.passable(s,{type:'light'},p.x,p.y)&&!A.at(s,p.x,p.y));
+ assert(p,'choose an empty adjacent ground tile');
+ const hull=A.add(s,'light',1,p.x,p.y);hull.team=2;hull.abandoned=true;hull.morale=0;
+ h.view().onClick(inf);h.view().onClick(p);
+ assert.equal(hull.team,0);
+ assert(h.node('toast').textContent.includes('Captured'));
+});
