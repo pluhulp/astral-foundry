@@ -188,7 +188,7 @@ test('scout infantry may move in two commands without exceeding one shared budge
  assert.equal(A.reach(s,unit).size,0);
 });
 test('firing ends a scout unit movement allowance and ordinary tanks still move only once',()=>{
- const s=field(),scout=A.add(s,'scout',0,5,7),target=A.add(s,'rifle',1,8,8);
+ const s=field(),scout=A.add(s,'scout',0,5,7),target=A.add(s,'rifle',1,7,8);
  s.tiles.forEach(t=>{if(t.terrain!=='void'&&!t.facility)t.terrain='plain';});
  assert(A.move(s,scout,6,7));assert(A.canSplitMove(s,scout));
  assert(A.attack(s,scout,target));
