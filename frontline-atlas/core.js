@@ -196,7 +196,7 @@ if(a.kind==='salvo'){const i=u.used.findIndex((v,i)=>v&&u.ammo[i]>0);u.used[i]=f
  if(a.kind==='sortie'){alive(s,u.team).filter(v=>D[v.type].branch==='Air'&&dist(u,v)<=4).forEach(v=>{v.hp=Math.min(v.maxHp,v.hp+24);v.ammo=D[v.type].weapons.map(w=>w.capacity);v.reserve=1;});u.fired=u.moved=true;}
  if(a.kind==='beachhead'){const t=insertionTile(s,u),b=s.units.find(v=>v.id===u.cargo);unload(s,u,t.x,t.y,true);b.moved=b.fired=false;b.used=D[b.type].weapons.map(()=>false);b.entrenched=true;b.smokeUntil=s.turn+1;u.fired=u.moved=true;}
 if(a.kind==='service'){u.serviceUsed[u.serviceUsed.findIndex(Boolean)]=false;u.fired=false;}
-if(a.kind==='heal'){allies.filter(v=>D[v.type].branch==='Infantry').forEach(v=>v.hp=Math.min(v.maxHp,v.hp+30));u.fired=u.moved=true;}
+if(a.kind==='heal'){allies.filter(v=>D[v.type].branch==='Infantry').forEach(v=>{v.hp=Math.min(v.maxHp,v.hp+30);v.pressure=Math.max(0,(v.pressure||0)-50);if(v.pressure<60)v.pinnedUntil=-1;});u.fired=u.moved=true;}
 if(a.kind==='ammo'){allies.forEach(v=>{v.ammo=D[v.type].weapons.map(w=>w.capacity);v.reserve=1;});u.fired=u.moved=true;}
 if(a.kind==='rally'){allies.filter(v=>!v.moved&&!v.fired&&v!==u).forEach(v=>{v.boostTurn=s.turn;v.moveBoost=1;});u.fired=u.moved=true;}
 if(a.kind==='smokescreen'){allies.filter(v=>dist(u,v)<=1).forEach(v=>v.smokeUntil=s.turn);u.fired=u.moved=true;}
@@ -495,6 +495,13 @@ function pressureHit(s,a,b,damageAmount,extra=0){
     (b.entrenched?7:0)-command);
  b.pressure=Math.min(100,old+gain);
  if(b.pressure>=60){
+  // Broken, isolated infantry can surrender instead of magically fighting to
+  // the last hit point. Nearby allies and command vehicles prevent routs.
+  if(b.pressure>=95&&b.hp<=b.maxHp*.45&&victim.branch==='Infantry'&&
+     !alive(s,b.team).some(v=>v.id!==b.id&&!v.carried&&dist(v,b)<=2)){
+   b.surrendered=true;log(s,D[b.type].name+' SURRENDERED: isolated under sustained fire.');
+   hurt(s,b,b.hp);return true;
+  }
   const wasPinned=pinned(s,b);
   b.pinnedUntil=Math.max(b.pinnedUntil??-1,s.turn+(b.team===0&&s.side===1?1:0));
   b.entrenched=false;
@@ -578,7 +585,7 @@ function spottingLink(s,a,b){
   (D[v.type].branch==='Infantry'||has(v,'recon')||has(v,'radar')||has(v,'command'))&&
   sight(s,v,b));
 }
-function canAttack(s,a,b,retaliate=false){if(s.phase==='deployment'||!a||!b||a.landed||!visibleTo(s,b,a.team)||a.hp<=0||b.hp<=0||a.carried||b.carried||a.team===b.team||(!retaliate&&!canFire(a))||a.ammo[a.weapon||0]<=0||!spottingLink(s,a,b))return false;let d=dist(a,b),def=weapon(a);if(has(a,'antiShip')&&D[b.type].branch!=='Navy')return false;if(D[b.type].branch==='Air'&&!b.landed&&!has(a,'antiAir')&&D[a.type].branch!=='Air'&&!['rifle','mg'].includes(D[a.type].family))return false;return (has(a,'indirect')||lineOfSight(s,a,b))&&d<=(a.battery?13:def.range)+(a.rangeBoostTurn===s.turn?2:0)+(tile(s,a.x,a.y)?.terrain==='hill'?1:0)+rangeElevation(s,a,b)&&d>=(has(a,'indirect')?2:1)&&(!has(a,'indirect')||a.battery||D[a.type].branch==='Navy'||a.repositionedTurn!==s.turn||a.setupTurn===s.turn);}
+function canAttack(s,a,b,retaliate=false){if(s.phase==='deployment'||!a||!b||a.landed||!visibleTo(s,b,a.team)||a.hp<=0||b.hp<=0||a.carried||b.carried||a.team===b.team||pinned(s,a)||(!retaliate&&!canFire(a))||a.ammo[a.weapon||0]<=0||!spottingLink(s,a,b))return false;let d=dist(a,b),def=weapon(a);if(has(a,'antiShip')&&D[b.type].branch!=='Navy')return false;if(D[b.type].branch==='Air'&&!b.landed&&!has(a,'antiAir')&&D[a.type].branch!=='Air'&&!['rifle','mg'].includes(D[a.type].family))return false;return (has(a,'indirect')||lineOfSight(s,a,b))&&d<=(a.battery?13:def.range)+(a.rangeBoostTurn===s.turn?2:0)+(tile(s,a.x,a.y)?.terrain==='hill'?1:0)+rangeElevation(s,a,b)&&d>=(has(a,'indirect')?2:1)&&(!has(a,'indirect')||a.battery||D[a.type].branch==='Navy'||a.repositionedTurn!==s.turn||a.setupTurn===s.turn);}
 function fleetEscort(s,b){
  if(!b.flagship||D[b.type].branch!=='Navy')return null;
  return alive(s,b.team).find(v=>v.id!==b.id&&!v.carried&&D[v.type].branch==='Navy'&&dist(v,b)<=4);
