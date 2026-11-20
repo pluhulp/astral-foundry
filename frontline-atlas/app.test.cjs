@@ -25,7 +25,7 @@ test('armory six variants and independent custom objectives remain available',()
 test('ammo, mobility and grounded states are prominent in troop panel',()=>{let h=setup();place(h,'light');h.node('end-turn').onclick();let u=h.view().state.units.find(u=>u.team===0);u.ammo=[0];u.disabled=true;h.view().onClick(u);assert(h.node('unit-panel').innerHTML.includes('OUT OF AMMO'));assert(h.node('unit-panel').innerHTML.includes('IMMOBILIZED'));let air=A.add(h.view().state,'fighter',0,5,5);air.landed=true;h.view().onClick(air);assert(h.node('unit-panel').innerHTML.includes('LANDED'));assert(h.node('unit-panel').innerHTML.includes('Take off'));});
 test('deployment return-to-reserve button refunds and reopens HQ',()=>{let h=setup();place(h,'light');let s=h.view().state,u=A.alive(s,0)[0];h.view().onClick(u);assert(h.node('unit-panel').innerHTML.includes('Return to reserve'));h.click('withdraw');assert.equal(s.credits,10);assert.equal(A.alive(s,0).length,0);assert(h.node('unit-panel').innerHTML.includes('Deployment & resupply'));});
 test('one-click enemy shot fires immediately and shift-click retains optional forecast',()=>{let h=setup();place(h,'light');h.node('end-turn').onclick();let s=h.view().state,a=A.alive(s,0)[0];s.tiles.forEach(t=>t.terrain='plain');const b=A.add(s,'rifle',1,a.x+2,a.y),ammo=a.ammo[0],hp=b.hp;h.view().onClick(a);h.view().onClick(b,{shiftKey:true});assert(h.node('unit-panel').innerHTML.includes('Return fire:'));assert.equal(b.hp,hp);assert.equal(a.ammo[0],ammo);h.click('cancel-fire');h.view().onClick(b);assert(b.hp<hp);assert.equal(a.ammo[0],ammo-1);h.view().onClick(b);assert.equal(a.ammo[0],ammo-1);});
-test('force roster focuses an owned troop and exposes its actions',()=>{let h=setup();place(h,'light');h.node('end-turn').onclick();const u=A.alive(h.view().state,0)[0];h.click('focus-unit',u.id);assert(h.node('battle-force').innerHTML.includes('Kestrel light tank'));assert(h.node('unit-panel').innerHTML.includes('Main gun'));assert(Number.isFinite(h.view().pan.x));});
+test('force roster focuses an owned troop and exposes its actions',()=>{let h=setup();place(h,'light');h.node('end-turn').onclick();const u=A.alive(h.view().state,0)[0];h.click('focus-unit',u.id);assert(h.node('battle-force').innerHTML.includes('Kestrel light tank'));assert(h.node('unit-panel').innerHTML.includes('Main gun'));assert.deepEqual(h.view().focus,[u.x,u.y]);});
 
 test('side-panel uses compact combat actions and displays expandable command capacity',()=>{const h=setup();place(h,'rifle');h.node('end-turn').onclick();const u=A.alive(h.view().state,0)[0];h.view().onClick(u);const html=h.node('unit-panel').innerHTML;assert(html.includes('status-chips'));assert(!html.includes('>Move<'));assert(h.node('battle-stats').textContent.includes('/10 troops'));});
 
@@ -137,4 +137,41 @@ test('resuming an older interception upgrades flagship hull proportionally witho
  assert(Math.abs(loaded.hp/loaded.maxHp-fraction)<.01);
  assert.equal(h.view().state.version,3);
  assert.deepEqual(h.saved().profile.completed,{});
+});
+
+test('new audio setting and overwatch quick action preserve the no-menu tactical controls',()=>{
+ const h=harness(A,source);h.click('settings');
+ assert(h.node('screen-content').innerHTML.includes('Sound effects'));
+ h.change('audio',false);assert.equal(h.saved().profile.settings.audio,false);
+ h.change('audio',true);assert.equal(h.saved().profile.settings.audio,true);
+ h.click('mission',0);h.click('deploy');place(h,'rifle');h.node('end-turn').onclick();
+ const u=A.alive(h.view().state,0)[0];h.view().onClick(u);
+ assert(h.node('unit-panel').innerHTML.includes('Overwatch'));
+ h.click('unit-action','overwatch');
+ assert(u.guard);assert(u.fired);
+ assert(h.node('unit-panel').innerHTML.includes('OVERWATCH READY'));
+});
+
+test('clicking a tough enemy repeatedly auto-selects remaining Leviathan guns without weapon menu clicks',()=>{
+ const h=setup(),s=h.view().state;s.tiles.forEach(t=>{if(t.terrain!=='void')t.terrain='plain'});
+ s.units=[];s.phase='combat';s.side=0;s.result=null;
+ const ship=A.add(s,'battleship',0,5,8),target=A.add(s,'battleship',1,10,8);
+ target.hp=target.maxHp=4000;h.view().onClick(ship);
+ const initial=ship.ammo.slice();
+ for(let i=0;i<4;i++){h.view().onClick(target);assert.equal(ship.used.filter(Boolean).length,i+1);}
+ assert.equal(ship.ammo.reduce((n,v,i)=>n+initial[i]-v,0),4);
+ assert.equal(ship.fired,true);assert(target.hp<4000);
+ assert(h.node('unit-panel').innerHTML.includes('Secondary guns'));
+});
+test('shift-click previews a next available gun after the first gun has fired without spending ammo',()=>{
+ const h=setup(),s=h.view().state;s.tiles.forEach(t=>{if(t.terrain!=='void')t.terrain='plain'});
+ s.units=[];s.phase='combat';s.side=0;s.result=null;
+ const ship=A.add(s,'battleship',0,5,8),target=A.add(s,'battleship',1,10,8);
+ target.hp=target.maxHp=4000;h.view().onClick(ship);h.view().onClick(target);
+ const old=ship.ammo.slice(),hp=target.hp;
+ h.view().onClick(target,{shiftKey:true});
+ assert(h.node('unit-panel').innerHTML.includes('Fire weapon'));
+ assert.notEqual(ship.weapon,0,'preview should select next legal battery');
+ assert.equal(target.hp,hp);assert.deepEqual(ship.ammo,old);
+ h.click('confirm-fire');assert(target.hp<hp);
 });
