@@ -887,6 +887,37 @@ function ai(s,u){
  if(!u.moved&&visible.length===0){if(!u.fired)overwatch(s,u);u.entrenched=true;}
 }
 function income(s,team=0){return 1+Math.min(1,s.tiles.filter(t=>t.owner===team&&t.facility==='factory').length);}
+// A telegraphed objective counterattack: spend a real enemy budget and
+// attack the contested ground, not endless arbitrary HQ reinforcements.
+function objectivePressure(s){
+ if(s.mission.type==='eliminate'||s.mission.type==='intercept'||s.mission.type==='battery'||s.mission.type==='counterbattery'||s.mission.type==='escort')return;
+ let target=null,level=0;
+ if(s.mission.type==='hold'){
+  const relay=s.tiles.find(t=>t.facility==='relay');if(relay?.owner===0){target=relay;level=Math.max(1,s.hold);}
+ }else if(s.mission.type==='seize'&&s.seized>0){
+  target=s.tiles.filter(t=>t.objective&&t.owner===0).sort((a,b)=>b.x-a.x)[0];level=s.seized;
+ }else if(s.mission.type==='protect'&&s.turn>=3&&s.turn%3===0){
+  target=s.units.find(u=>u.courier&&u.hp>0);level=Math.min(3,s.turn/3);
+ }else if(s.lastCaptureTurn>=s.turn-1&&s.lastCapture&&s.mission.type!=='defense'){
+  target=s.lastCapture;level=1;
+ }
+ if(!target||s.pressureTurn===s.turn||alive(s,1).length>=18)return;
+ s.pressureTurn=s.turn;
+ const cap=Math.min(3,1+Math.floor(level/2)),types=level>=2?['rocket','rifle','light']:['rifle','rocket','scout'];
+ let count=0;
+ for(let i=0;i<cap;i++){
+  const type=types[(s.turn+i)%types.length];
+  if(s.enemyCredits<D[type].cost)continue;
+  const tiles=s.tiles.filter(t=>!t.facility&&!t.pad&&t.terrain!=='void'&&!at(s,t.x,t.y)&&
+   passable(s,{type},t.x,t.y)&&dist(t,target)>=4&&dist(t,target)<=7&&t.x>=target.x)
+   .sort((a,b)=>dist(a,target)-dist(b,target)||b.x-a.x);
+  const pos=tiles[(s.turn+i*3)%Math.min(tiles.length,7)];
+  if(!pos)continue;
+  const u=add(s,type,1,pos.x,pos.y);u.assault=true;u.entrenched=false;
+  s.enemyCredits-=D[type].cost;count++;
+ }
+ if(count){s.pressure={turn:s.turn,count,x:target.x,y:target.y,level};log(s,'MERIDIAN COUNTERATTACK: '+count+' unit(s) converging on the contested objective.');}
+}
 function counterpressure(s){if(!(s.alerts>0)||!s.lastCapture||s.mission.type==='defense')return;const h=tile(s,s.enemyHome.x,s.enemyHome.y);if(h.owner!==1)return;const capture=s.lastCapture;for(const type of ['rocket','rifle']){if(s.enemyCredits<D[type].cost||alive(s,1).length>=16)break;const candidates=s.tiles.filter(t=>!at(s,t.x,t.y)&&!t.facility&&passable(s,{type},t.x,t.y)&&dist(t,capture)>=4&&dist(t,capture)<=8&&dist(t,h)<=10).sort((a,b)=>dist(a,capture)-dist(b,capture));const t=candidates[0];if(!t)continue;let u=add(s,type,1,t.x,t.y);u.entrenched=false;s.enemyCredits-=D[type].cost;log(s,'Meridian counterattack approaching the captured position.');}}
 
 function fleetReinforcements(s){
@@ -925,7 +956,7 @@ function beginPlayer(s){if(s.result||s.phase==='deployment')return;s.side=0;s.tu
  if(s.emptyRounds===2)log(s,'LAST CHANCE: no active troops. Deploy now or the mission ends next round.');
  const gain=income(s);s.credits=s.operator?999:Math.min(24,s.credits+gain);const relay=s.tiles.find(t=>t.facility==='relay');s.hold=relay?.owner===0?s.hold+1:0;s.seized=s.tiles.filter(t=>t.objective).every(t=>t.owner===0)?(s.seized||0)+1:0;
 alive(s,0).forEach(u=>{resetUnit(u,s);if(u.battery){u.ammo=D[u.type].weapons.map(w=>w.capacity);u.bombardTurn=s.turn;}const t=tile(s,u.x,u.y);if(t.owner===0&&t.facility==='town')u.hp=Math.min(u.maxHp,u.hp+12);if(t.owner===0&&t.facility==='airfield'&&u.landed){u.hp=Math.min(u.maxHp,u.hp+20);u.ammo=D[u.type].weapons.map(w=>w.capacity);u.reserve=1;}if(!u.carried&&D[u.type].branch==='Infantry'&&alive(s,0).some(v=>has(v,'hospital')&&dist(u,v)<=2))u.hp=Math.min(u.maxHp,u.hp+8);});
-s.enemyCredits=Math.min(24,s.enemyCredits+Math.max(2,income(s,1)));advanceConvoy(s);specialWave(s);batteryWarnings(s);wave(s);fleetReinforcements(s);counterRaids(s);counterpressure(s);if((s.turn%2===0||(s.alerts||0)>0)&&alive(s,1).length<16&&s.mission.type!=='eliminate'&&s.mission.type!=='defense'&&s.mission.type!=='counterbattery'&&s.mission.type!=='escort'){const h=tile(s,s.enemyHome.x,s.enemyHome.y);if(h.owner===1){const heavy=alive(s,0).some(u=>visibleTo(s,u,1)&&D[u.type].armor>=15),air=alive(s,0).some(u=>visibleTo(s,u,1)&&D[u.type].branch==='Air'),options=air?['aa','rocket','rifle']:heavy?['rocket','td','rifle']:['rifle','light','scout','arty'];let type=options[(s.turn/2-1)%options.length];if(s.enemyCredits>=D[type].cost){let t=s.tiles.find(t=>dist(t,h)===1&&!at(s,t.x,t.y)&&passable(s,{type},t.x,t.y));if(t){add(s,type,1,t.x,t.y);s.enemyCredits-=D[type].cost;}}}s.alerts=Math.max(0,(s.alerts||0)-1);s.lastCapture=null;}
+s.enemyCredits=Math.min(24,s.enemyCredits+Math.max(2,income(s,1)));advanceConvoy(s);specialWave(s);batteryWarnings(s);wave(s);objectivePressure(s);fleetReinforcements(s);counterRaids(s);counterpressure(s);if((s.turn%2===0||(s.alerts||0)>0)&&alive(s,1).length<16&&s.mission.type!=='eliminate'&&s.mission.type!=='defense'&&s.mission.type!=='counterbattery'&&s.mission.type!=='escort'){const h=tile(s,s.enemyHome.x,s.enemyHome.y);if(h.owner===1){const heavy=alive(s,0).some(u=>visibleTo(s,u,1)&&D[u.type].armor>=15),air=alive(s,0).some(u=>visibleTo(s,u,1)&&D[u.type].branch==='Air'),options=air?['aa','rocket','rifle']:heavy?['rocket','td','rifle']:['rifle','light','scout','arty'];let type=options[(s.turn/2-1)%options.length];if(s.enemyCredits>=D[type].cost){let t=s.tiles.find(t=>dist(t,h)===1&&!at(s,t.x,t.y)&&passable(s,{type},t.x,t.y));if(t){add(s,type,1,t.x,t.y);s.enemyCredits-=D[type].cost;}}}s.alerts=Math.max(0,(s.alerts||0)-1);s.lastCapture=null;}
 log(s,'Round '+s.turn+': +'+gain+' supply.');check(s);}
 function unlock(type,profile){return !!profile?.unlocked?.includes(type);}
 const families=(typeof module!=='undefined'?require('./roster.js'):root.AtlasRoster)(D,abilities,starters);
@@ -988,5 +1019,5 @@ for(const d of Object.values(D)){
  d.ability=navyAbility(d);abilities[d.id]=d.ability;
 }
 // Navy is a separate long-range branch; land-unit balance clamps must not apply to ships.
-root.Atlas={hasSpotter,moraleMax,resolve,pinned,shake,overwatch,reaction,recoverMorale,fleetEscort,navalFireControl,batteryCoverageAt,groundHeight,elevation,rangeElevation,enemyOrder,commandIntel,operationDescriptions,specialOperations,withdraw,forecast,launch,flight,income,capacity,navalMap,tileVisible,visibleTo,lineOfSight,families,abilities,abilityError,useAbility,moveBudget,smoke,baseService,recruitError,freshProfile,purchase,train,deckError,weapon,canFire,selectWeapon,rangeTiles,reload,starters,D,chapters,missions,objectiveNames,make,tile,at,has,dist,reach,move,canAttack,damage,attack,capture,support,load,unload,recruit,alive,log,check,beginEnemy,ai,beginPlayer,visible,unlock,add,passable};if(typeof module!=='undefined')module.exports=root.Atlas;
+root.Atlas={objectivePressure,hasSpotter,moraleMax,resolve,pinned,shake,overwatch,reaction,recoverMorale,fleetEscort,navalFireControl,batteryCoverageAt,groundHeight,elevation,rangeElevation,enemyOrder,commandIntel,operationDescriptions,specialOperations,withdraw,forecast,launch,flight,income,capacity,navalMap,tileVisible,visibleTo,lineOfSight,families,abilities,abilityError,useAbility,moveBudget,smoke,baseService,recruitError,freshProfile,purchase,train,deckError,weapon,canFire,selectWeapon,rangeTiles,reload,starters,D,chapters,missions,objectiveNames,make,tile,at,has,dist,reach,move,canAttack,damage,attack,capture,support,load,unload,recruit,alive,log,check,beginEnemy,ai,beginPlayer,visible,unlock,add,passable};if(typeof module!=='undefined')module.exports=root.Atlas;
 })(typeof window!=='undefined'?window:globalThis);
