@@ -286,7 +286,7 @@ for(const lane of [mid-2,mid+2])for(let x=3;x<w-3;x++){
 }
 const enemies=m.ch===0&&m.n===0?['rifle','scout','mg','rocket']:
  ['rifle','rocket','light','scout','supply',...(m.n>0?['mg']:[]),...(m.difficulty>2?['td','arty']:[]),...(m.ch>2?['aa','command']:[])];
-enemies.forEach((type,i)=>{let x=m.ch===0&&m.n===0?Math.floor(w*.58)+(i%2)*2:w-5-(i%3)*2,y=mid-5+Math.floor(i/3)*3;road(x,y);let u=add(s,type,1,x,y);if(i%3===0)u.entrenched=true;if(m.type==='strike'&&i===2)u.command=true;});
+enemies.forEach((type,i)=>{let x=m.ch===0&&m.n===0?[11,12,14,13][i]:w-5-(i%3)*2,y=m.ch===0&&m.n===0?mid+[0,-2,2,1][i]:mid-5+Math.floor(i/3)*3;road(x,y);let u=add(s,type,1,x,y);if(i%3===0)u.entrenched=true;if(m.type==='strike'&&i===2)u.command=true;});
 if(navalMap(m)){
  // A proper opposing task group: smaller waters get three ships, coastal seas
  // start with a four/five-vessel combined-arms fleet. No inflated weapon stats.
