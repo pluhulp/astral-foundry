@@ -194,8 +194,42 @@ function skyDome(parent,s){
  const orb=new T.Mesh(sunGeo,new T.MeshBasicMaterial({color:b==='desert'?0xffdbb0:0xfff4d6,fog:false,depthWrite:false}));
  orb.position.set(-78,106,-105);orb.userData.sky=true;parent.add(orb);
 }
+// Minimal synthesized tactical SFX: generated locally; no copyrighted audio samples.
+let tacticalAudio=null;
+function audioContext(){
+ const C=typeof window!=='undefined'&&(window.AudioContext||window.webkitAudioContext);
+ if(!C)return null;
+ if(!tacticalAudio)try{tacticalAudio=new C();}catch(e){return null;}
+ if(tacticalAudio.state==='suspended')tacticalAudio.resume?.().catch?.(()=>{});
+ return tacticalAudio;
+}
+function tacticalSound(kind,weight=1){
+ const ctx=audioContext();if(!ctx)return;
+ const time=ctx.currentTime,gain=ctx.createGain();gain.connect(ctx.destination);
+ const maxGain=Math.min(.20,kind==='blast'?.12:kind==='shot'?.065:.035)*Math.max(.3,Math.min(1,weight));
+ const dur=kind==='blast'?.45:kind==='shot'?.14:kind==='pin'?.20:.09;
+ gain.gain.setValueAtTime(.0001,time);gain.gain.exponentialRampToValueAtTime(maxGain,time+.009);
+ gain.gain.exponentialRampToValueAtTime(.0001,time+dur);
+ const os=ctx.createOscillator();os.type=kind==='blast'?'sawtooth':kind==='pin'?'sine':'triangle';
+ const f=kind==='blast'?65:kind==='shot'?235:kind==='pin'?520:110;
+ os.frequency.setValueAtTime(f,time);os.frequency.exponentialRampToValueAtTime(kind==='blast'?35:kind==='shot'?65:kind==='pin'?310:58,time+dur);
+ os.connect(gain);os.start(time);os.stop(time+dur+.02);
+ // Lowpassed white-noise decay gives shell impacts body without clipping.
+ if(kind==='blast'||kind==='shot'){
+  const n=ctx.sampleRate*.43,buf=ctx.createBuffer(1,Math.floor(n),ctx.sampleRate),data=buf.getChannelData(0);
+  for(let i=0;i<data.length;i++)data[i]=(Math.random()*2-1)*(1-i/data.length);
+  const noise=ctx.createBufferSource();noise.buffer=buf;
+  const filter=ctx.createBiquadFilter();filter.type='lowpass';
+  filter.frequency.setValueAtTime(kind==='blast'?720:1600,time);
+  const vol=ctx.createGain();vol.gain.setValueAtTime(0.0001,time);
+  vol.gain.exponentialRampToValueAtTime(maxGain*.75,time+.012);
+  vol.gain.exponentialRampToValueAtTime(.0001,time+dur);
+  noise.connect(filter);filter.connect(vol);vol.connect(ctx.destination);
+  noise.start(time);noise.stop(time+dur+.02);
+ }
+}
 class View{
-constructor(canvas,labels){this.canvas=canvas;this.labels=labels;this.scene=new T.Scene();this.scene.background=new T.Color(0x8ba9b4);this.scene.fog=new T.Fog(0xa9bac1,36,85);this.scene.add(new T.HemisphereLight(0xffffff,0x687964,2));let sun=new T.DirectionalLight(0xffefd2,2.5);sun.position.set(-8,16,10);this.scene.add(sun);this.camera=new T.PerspectiveCamera(42,1,.12,240);this.eye=new T.Vector3(-18,19,22);this.yaw=2.50;this.pitch=-.60;this.flightSpeed=9;this.controls='flight';this.keys=new Set();this.flightVelocity=new T.Vector3();this.flightTick=0;this.cameraEase=null;this.backdrop=new T.Group();this.scene.add(this.backdrop);this.groups=new Map();this.labelsMap=new Map();this.wakes=[];this.ray=new T.Raycaster();this.pointer=new T.Vector2();this.animations=[];this.effects=[];this.impactGroup=new T.Group();this.scene.add(this.impactGroup);this.impactHistory=[];this.last=0;this.motion=true;this.dirty=true;this.staticFaces=null;this.metrics={frames:0,renderMs:0,staticBuilds:0};this.selectedId=null;
+constructor(canvas,labels){this.canvas=canvas;this.labels=labels;this.scene=new T.Scene();this.scene.background=new T.Color(0x8ba9b4);this.scene.fog=new T.Fog(0xa9bac1,36,85);this.scene.add(new T.HemisphereLight(0xffffff,0x687964,2));let sun=new T.DirectionalLight(0xffefd2,2.5);sun.position.set(-8,16,10);this.scene.add(sun);this.camera=new T.PerspectiveCamera(42,1,.12,240);this.eye=new T.Vector3(-18,19,22);this.yaw=2.50;this.pitch=-.60;this.flightSpeed=9;this.controls='flight';this.keys=new Set();this.flightVelocity=new T.Vector3();this.flightTick=0;this.cameraEase=null;this.backdrop=new T.Group();this.scene.add(this.backdrop);this.groups=new Map();this.labelsMap=new Map();this.wakes=[];this.ray=new T.Raycaster();this.pointer=new T.Vector2();this.animations=[];this.effects=[];this.soundEnabled=false;this.impactGroup=new T.Group();this.scene.add(this.impactGroup);this.impactHistory=[];this.last=0;this.motion=true;this.dirty=true;this.staticFaces=null;this.metrics={frames:0,renderMs:0,staticBuilds:0};this.selectedId=null;
 try{this.renderer=new T.WebGLRenderer({canvas,antialias:true,powerPreference:'low-power'});this.renderer.setPixelRatio(Math.min(devicePixelRatio,1.25));this.renderer.outputColorSpace=T.SRGBColorSpace;this.renderer.toneMapping=T.ACESFilmicToneMapping;this.renderer.toneMappingExposure=1.1;this.renderer.shadowMap.enabled=true;this.renderer.shadowMap.type=T.PCFSoftShadowMap;sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);Object.assign(sun.shadow.camera,{left:-22,right:22,top:22,bottom:-22});sun.shadow.bias=-.002;this.software=false;}catch(e){this.software=true;let replacement=document.createElement('canvas');replacement.id=canvas.id;canvas.replaceWith(replacement);this.canvas=replacement;this.ctx=replacement.getContext('2d');}
 this.tileGroup=new T.Group();this.unitGroup=new T.Group();this.markGroup=new T.Group();this.fogGroup=new T.Group();this.scene.add(this.tileGroup,this.unitGroup,this.markGroup,this.fogGroup);this.resize();this.bind();this.resizeObserver=new ResizeObserver(()=>this.resize());this.resizeObserver.observe(this.canvas.parentElement);requestAnimationFrame(t=>this.frame(t));}
 // A true free camera: neither the level nor the view target is rotated around a central pivot.
@@ -576,9 +610,9 @@ events(){
    const unit=s.units.find(u=>u.id===ev.id),branch=A.D[unit?.type]?.branch,
     millis=branch==='Navy'?240:branch==='Air'?165:branch==='Infantry'?220:200;
    this.animations=this.animations.filter(a=>a.id!==ev.id);
-   this.animations.push({...ev,start:now,duration:Math.min(2200,Math.max(230,ev.path.length*millis))});
+   this.animations.push({...ev,start:now,duration:Math.min(2200,Math.max(230,ev.path.length*millis))});if(this.soundEnabled)tacticalSound('move',.3);
   }else if(ev.kind==='attack'||ev.kind==='counter')this.makeShot(ev,now);
-  else if(ev.kind==='morale'&&this.motion&&this.labels?.append){
+  else if(ev.kind==='morale'&&this.motion&&this.labels?.append){if(this.soundEnabled)tacticalSound('pin',.3);
    const tag=document.createElement('div');tag.className='damage pinned-pop';
    tag.textContent='PINNED';tag.style.display='block';this.labels.append(tag);
    this.effects.push({kind:'pin',el:tag,x:ev.x,y:ev.y,start:now,duration:780});
@@ -654,7 +688,7 @@ retireEffect(e){
     sparks.push(p);
    }
   }
-  this.scene.add(fx);
+  this.scene.add(fx);if(this.soundEnabled)tacticalSound('shot',explosive?.85:.55);
   let el=null;
   if(ev.damage>0&&this.labels?.append){
    el=document.createElement('div');el.className='damage';el.textContent='−'+ev.damage;
@@ -718,7 +752,7 @@ retireEffect(e){
     e.tracer.visible=true;e.blast.visible=false;return true;
    }
    if(!e.impacted){
-    e.impacted=true;e.tracer.visible=false;e.blast.visible=true;
+    e.impacted=true;e.tracer.visible=false;e.blast.visible=true;if(this.soundEnabled)tacticalSound('blast',e.explosive?1:.43);
     e.el&&(e.el.style.display='block');
     this.addImpactMark(e);
     if(e.id){
