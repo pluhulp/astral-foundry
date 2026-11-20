@@ -99,3 +99,7 @@
 /* v9.8: compact naval boss status, not additional battle clutter */
 .status-chips .fleet-screen{border:1px solid #adac83;background:#4d4930;color:#f1df9e;font-weight:700}
 .status-chips .fleet-exposed{border:1px solid #8e6260;background:#45332e;color:#ddada2;font-weight:700}
+
+/* v10: captured and abandoned assets read differently without an extra panel */
+.unit-label.neutral{filter:saturate(.24);opacity:.85}
+.pinned-pop{font-size:.67rem;font-weight:800;letter-spacing:.11em;color:#f1bda2;text-shadow:0 2px 5px #182729}
