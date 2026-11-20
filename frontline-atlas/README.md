@@ -46,13 +46,13 @@ A **standalone, browser-based, turn-based combined-arms tactics game**, influenc
 - Click a friendly troop to select it; click blue highlighted movement tiles to relocate it, or valid enemy targets to attack
 - Use the unit panel for primary/secondary weapons, resupply, rally, dig in, smoke, overwatch, boarding and unloading
 - Select Reinforcements and click a legal deployment tile
-- Right-drag = pan; scroll = zoom; Q/E = rotate; F = focus selected; R = frame entire map; Enter/Space = end turn; Escape = cancel
+- Right-drag = pan; scroll = zoom; Q/E = rotate; F = focus selected; R = frame entire map; Enter/Space = end turn; Escape = cancel. On mobile-width screens, an on-screen camera pad provides pan/zoom/rotate/reset controls.
 
 ## Technical / QA
 
 The project is served as static HTML/CSS/JavaScript from `index.html` and does not require a build process. All UI and procedural miniature models are self-contained.
 
-The latest version passed scripted JavaScript syntax, mocked DOM/menu initialization, mocked Canvas drawing, startup and enemy-turn simulations for ten scenarios, currency/result processing, smoke/rally, deployment, fog visibility data, and solo-save/resume checks.
+The latest version passed JavaScript syntax checks, mocked DOM/menu initialization, mocked Canvas drawing, startup and turn simulations for all ten scenarios, currency/result processing, smoke/rally, deployment, fog visibility data, and solo-save/resume checks. A dependency-free smoke test is committed at `smoke.test.cjs` and wired into the GitHub Actions regression workflow. Additional unattended battle simulations advanced all maps up to 25 turns or a result without exceptions.
 
 **These are automated smoke checks, NOT complete tests in a real browser**. Graphics layout, visual polish, performance on Chromebook/iOS, mission-by-mission balance and all edge cases still require player acceptance testing.
 
