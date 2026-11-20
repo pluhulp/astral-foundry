@@ -174,3 +174,25 @@ test('isolated damaged infantry can surrender at extreme pressure, but nearby al
  assert(covered.hp>0,'nearby teammates keep a panicked squad from surrendering');
  assert(A.pinned(s,covered));
 });
+
+test('scout infantry may move in two commands without exceeding one shared budget',()=>{
+ const s=field(),unit=A.add(s,'scout',0,5,7);
+ s.tiles.forEach(t=>{if(t.terrain!=='void'&&!t.facility)t.terrain='plain';});
+ const budget=A.moveBudget(s,unit);
+ assert.equal(budget,A.D.scout.move);
+ assert(A.move(s,unit,7,7));assert.equal(unit.moveSpent,2);
+ assert(A.canSplitMove(s,unit));
+ assert(A.move(s,unit,8,7));assert.equal(unit.moveSpent,3);
+ assert(!A.reach(s,unit).has('10,7'),'scouts cannot conjure extra movement beyond the original budget');
+ assert(A.move(s,unit,9,7));assert.equal(unit.moveSpent,4);
+ assert.equal(A.reach(s,unit).size,0);
+});
+test('firing ends a scout unit movement allowance and ordinary tanks still move only once',()=>{
+ const s=field(),scout=A.add(s,'scout',0,5,7),target=A.add(s,'rifle',1,8,8);
+ s.tiles.forEach(t=>{if(t.terrain!=='void'&&!t.facility)t.terrain='plain';});
+ assert(A.move(s,scout,6,7));assert(A.canSplitMove(s,scout));
+ assert(A.attack(s,scout,target));
+ assert(!A.canSplitMove(s,scout));assert.equal(A.reach(s,scout).size,0);
+ const tank=A.add(s,'light',0,4,9);assert(A.move(s,tank,5,9));
+ assert.equal(A.reach(s,tank).size,0);
+});
