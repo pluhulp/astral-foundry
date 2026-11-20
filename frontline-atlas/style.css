@@ -99,3 +99,8 @@
 /* v9.8: compact naval boss status, not additional battle clutter */
 .status-chips .fleet-screen{border:1px solid #adac83;background:#4d4930;color:#f1df9e;font-weight:700}
 .status-chips .fleet-exposed{border:1px solid #8e6260;background:#45332e;color:#ddada2;font-weight:700}
+
+/* v10 battlefield feedback: pressure/overwatch without additional HUD paragraphs */
+.unit-label.pinned-label span{background:#5d4033;color:#f1bb84;border:1px solid #aa6b4b}
+.unit-label.guard-label span{background:#324c45;color:#c5ead7;border:1px solid #719f8f}
+.unit-panel .danger-chip{letter-spacing:.02em}
