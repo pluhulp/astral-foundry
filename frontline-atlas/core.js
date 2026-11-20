@@ -543,7 +543,7 @@ function isExplosiveShot(u){return has(u,'splash')||has(u,'indirect')||D[u.type]
 function attack(s,a,b){
  if(s.result||s.side!==a.team||!canAttack(s,a,b))return false;
  const bombard=a.battery||a.bombardTurn===s.turn,point={x:b.x,y:b.y},n=damage(s,a,b),initial=b.hp;
- hurt(s,b,n);a.focusTurn=null;a.torpedoTurn=null;a.bombardTurn=null;
+ hurt(s,b,n);shake(s,a,b,n);if(moraleMax(a))a.morale=Math.min(6,resolve(a)+1);a.focusTurn=null;a.torpedoTurn=null;a.bombardTurn=null;
  if(a.suppressTurn===s.turn){b.suppressedUntil=s.turn+(a.team===1?1:0);a.suppressTurn=null;}
  a.shotRound=s.turn;a.ammo[a.weapon||0]--;a.used[a.weapon||0]=true;a.fired=a.used.every((used,i)=>used||a.ammo[i]===0);
  a.moved=true;a.guard=false;a.evadeMove=a.harassTurn===s.turn?s.turn:null;a.harassTurn=null;a.xp+=initial>0&&b.hp===0?1:0;
@@ -555,16 +555,19 @@ function attack(s,a,b){
    if(!cell)continue;
    const v=cell.terrain==='void'?null:at(s,impact.x,impact.y),dmg=v&&v.hp>0&&!v.carried?Math.max(5,Math.round(damage(s,a,v)*.65)):0;
    const before=v?.hp;
-   if(v&&dmg){if(v.team===a.team)friendlies++;hurt(s,v,dmg);if(before>0&&v.hp===0&&v.team!==a.team)a.xp++;}
+   if(v&&dmg){if(v.team===a.team)friendlies++;hurt(s,v,dmg);shake(s,a,v,dmg);if(before>0&&v.hp===0&&v.team!==a.team)a.xp++;}
    s.events.push({kind:'attack',from:{x:a.x,y:a.y},to:impact,damage:dmg,id:v?.id,sourceType:a.type,targetType:v?.type,explosive:true,destroyed:!!(before>0&&v.hp===0)});
   }
   log(s,D[a.type].name+' fired FIVE-shell bombardment at '+D[b.type].name+'; '+(friendlies?'FRIENDLY FIRE '+friendlies+' vessel(s)/unit(s).':'impact pattern clear of allies.'));
  }else{
   log(s,D[a.type].name+' hit '+D[b.type].name+' for '+n+'.');
-  if(has(a,'splash'))s.units.filter(v=>v.id!==b.id&&v.hp>0&&!v.carried&&dist(v,b)===1).forEach(v=>hurt(s,v,Math.round(n*.3)));
+  if(has(a,'splash'))s.units.filter(v=>v.id!==b.id&&v.hp>0&&!v.carried&&dist(v,b)===1).forEach(v=>{const blast=Math.round(n*.3);hurt(s,v,blast);shake(s,a,v,blast);});
  }
- if(b.hp>0&&canAttack(s,b,a,true)&&!has(b,'indirect')){
-  b.ammo[b.weapon||0]--;const reply=Math.round(damage(s,b,a)*.45),before=a.hp;hurt(s,a,reply);
+ // Defending requires a held overwatch stance, not automatic free counterdamage.
+ if(b.hp>0&&b.guard&&!pinned(s,b)&&canAttack(s,b,a,true)){
+  b.guard=false;b.ammo[b.weapon||0]--;b.used[b.weapon||0]=true;
+  const before=a.hp,reply=Math.max(1,Math.round(damage(s,b,a)*.65));
+  hurt(s,a,reply);shake(s,b,a,reply);
   s.events.push({kind:'counter',from:{x:b.x,y:b.y},to:{x:a.x,y:a.y},damage:reply,id:a.id,sourceType:b.type,targetType:a.type,explosive:isExplosiveShot(b),destroyed:before>0&&a.hp===0});
  }
  check(s);return true;
@@ -592,7 +595,7 @@ function unload(s,a,x,y,airdrop=false){let b=s.units.find(v=>v.id===a.cargo);if(
 function recruit(s,type,h=s.tiles.find(t=>t.facility==='hq'&&t.owner===0),chosen){if(recruitError(s,type,h))return false;const t=chosen||spawnTile(s,type,h);if(!s.pads.some(p=>p.x===t.x&&p.y===t.y&&(D[type].branch==='Navy'?p.kind==='sea':p.kind==='land'))||at(s,t.x,t.y)||!passable(s,{type},t.x,t.y))return false;
 const u=add(s,type,0,t.x,t.y);if(!s.operator)s.credits-=D[type].cost;if(s.phase!=='deployment'){u.readyTurn=s.turn+1;u.moved=u.fired=true;u.used=D[type].weapons.map(()=>true);u.serviceUsed=Array(D[type].serviceSlots).fill(true);}return u;}
 function withdraw(s,u){if(s.phase!=='deployment'||s.side!==0||s.result||!u||!s.units.includes(u)||u.team!==0||u.courier||u.carried||u.cargo||u.hp<=0)return false;s.units.splice(s.units.indexOf(u),1);if(!s.operator)s.credits+=D[u.type].cost;return true;}
-function forecast(s,a,b){if(!canAttack(s,a,b)||s.result||s.side!==a.team)return null;const hit=damage(s,a,b),remaining=Math.max(0,b.hp-hit),after={...b,hp:remaining};let counter=remaining>0&&canAttack(s,after,a,true)&&!has(b,'indirect')?Math.round(damage(s,after,a)*.45):0;const shell=a.battery||a.bombardTurn===s.turn;
+function forecast(s,a,b){if(!canAttack(s,a,b)||s.result||s.side!==a.team)return null;const hit=damage(s,a,b),remaining=Math.max(0,b.hp-hit),after={...b,hp:remaining};let counter=remaining>0&&b.guard&&canAttack(s,after,a,true)&&!has(b,'indirect')?Math.round(damage(s,after,a)*.65):0;const shell=a.battery||a.bombardTurn===s.turn;
  const splash=(shell||has(a,'splash'))?s.units.filter(v=>v.hp>0&&!v.carried&&v.id!==b.id&&dist(v,b)===1&&visibleTo(s,v,a.team)).map(v=>({id:v.id,friendly:v.team===a.team,damage:Math.min(v.hp,shell?Math.max(5,Math.round(damage(s,a,v)*.65)):Math.round(hit*.3))})):[];return {damage:Math.min(b.hp,hit),remaining,counter,kill:remaining===0,splash};}
 function flight(s,u){if(!u||D[u.type].branch!=='Air'||s.phase==='deployment'||s.result||s.side!==u.team||u.fired||u.carried)return false;const t=tile(s,u.x,u.y);if(!u.landed&&['water','mountain','forest','void'].includes(t.terrain))return false;u.landed=!u.landed;u.moved=u.fired=true;u.used.fill(true);log(s,D[u.type].name+(u.landed?' landed. Ground service available.':' airborne. Ready next round.'));return true;}
 
@@ -869,7 +872,7 @@ function ai(s,u){
  }
  if(has(u,'indirect')&&u.moved&&kind==='setup'&&!abilityError(s,u))useAbility(s,u);
  fireTactically(s,u,plan.focus);
- if(!u.moved&&visible.length===0)u.entrenched=true;
+ if(!u.moved&&visible.length===0){if(!u.fired)overwatch(s,u);u.entrenched=true;}
 }
 function income(s,team=0){return 1+Math.min(1,s.tiles.filter(t=>t.owner===team&&t.facility==='factory').length);}
 function counterpressure(s){if(!(s.alerts>0)||!s.lastCapture||s.mission.type==='defense')return;const h=tile(s,s.enemyHome.x,s.enemyHome.y);if(h.owner!==1)return;const capture=s.lastCapture;for(const type of ['rocket','rifle']){if(s.enemyCredits<D[type].cost||alive(s,1).length>=16)break;const candidates=s.tiles.filter(t=>!at(s,t.x,t.y)&&!t.facility&&passable(s,{type},t.x,t.y)&&dist(t,capture)>=4&&dist(t,capture)<=8&&dist(t,h)<=10).sort((a,b)=>dist(a,capture)-dist(b,capture));const t=candidates[0];if(!t)continue;let u=add(s,type,1,t.x,t.y);u.entrenched=false;s.enemyCredits-=D[type].cost;log(s,'Meridian counterattack approaching the captured position.');}}
