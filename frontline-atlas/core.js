@@ -284,8 +284,9 @@ for(const lane of [mid-2,mid+2])for(let x=3;x<w-3;x++){
  const t=tile(s,x,lane);
  if(t&&['plain','forest','dune','hill','ruins'].includes(t.terrain)&&!t.facility&&!t.pad){t.path=true;t.pathAxis='x';}
 }
-const enemies=['rifle','rocket','light','scout','supply',...(m.n>0?['mg']:[]),...(m.difficulty>2?['td','arty']:[]),...(m.ch>2?['aa','command']:[])];
-enemies.forEach((type,i)=>{let x=w-5-(i%3)*2,y=mid-5+Math.floor(i/3)*3;road(x,y);let u=add(s,type,1,x,y);if(i%3===0)u.entrenched=true;if(m.type==='strike'&&i===2)u.command=true;});
+const enemies=m.ch===0&&m.n===0?['rifle','scout','mg','rocket']:
+ ['rifle','rocket','light','scout','supply',...(m.n>0?['mg']:[]),...(m.difficulty>2?['td','arty']:[]),...(m.ch>2?['aa','command']:[])];
+enemies.forEach((type,i)=>{let x=m.ch===0&&m.n===0?Math.floor(w*.58)+(i%2)*2:w-5-(i%3)*2,y=mid-5+Math.floor(i/3)*3;road(x,y);let u=add(s,type,1,x,y);if(i%3===0)u.entrenched=true;if(m.type==='strike'&&i===2)u.command=true;});
 if(navalMap(m)){
  // A proper opposing task group: smaller waters get three ships, coastal seas
  // start with a four/five-vessel combined-arms fleet. No inflated weapon stats.
@@ -826,7 +827,9 @@ function tacticalPosition(s,u,goal,visible,contactHistory){
   const cohesion=friends.filter(v=>dist(p,v)<=2).length*1.4;
   const standoff=close<ideal?-(ideal-close)*10:0;
   const flank=hostile.some(v=>friends.some(ally=>dist(ally,v)<=3)&&dist(p,v)<=3)?9:0;
-  return distanceScore+opportunities*.7+objective+screened+cohesion+flank+cover+standoff-danger*(u.hp<u.maxHp*.5?.65:.34);
+  const morale=resolve(u)??6;
+  const dangerRisk=morale<=2?.85:morale<=4?.58:u.hp<u.maxHp*.5?.65:.34;
+  return distanceScore+opportunities*.7+objective+screened+cohesion+flank+cover+standoff-danger*dangerRisk;
  };
  const from={x:u.x,y:u.y},stay=potential(from);
  const shortlist=movement.sort((a,b)=>dist(a,goal)-dist(b,goal)).slice(0,100);
@@ -875,7 +878,7 @@ function ai(s,u){
  if(fireTactically(s,u,plan.focus))return;
  if(capture(s,u))return;
  // Entrenched garrisons anchor a front, but engage if a real target enters range.
- if(u.sentry&&u.entrenched&&!visible.some(v=>dist(u,v)<=Math.max(7,weapon(u).range)))return;
+ if(u.sentry&&u.entrenched&&!visible.some(v=>dist(u,v)<=Math.max(7,weapon(u).range))){overwatch(s,u);return;}
  const goal=goalFor(s,u,visible,plan.contacts);
  tacticalPosition(s,u,goal,visible,plan.contacts);
  if(capture(s,u))return;
