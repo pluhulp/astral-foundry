@@ -543,7 +543,7 @@ sync(){this.dirty=true;let s=this.state;const present=new Set(s.units.map(u=>u.i
    q.rotation.y=side*.17;
   }
  }
- if(u.battery)g.scale.setScalar(1.55);else if(u.strongpoint)g.scale.setScalar(1.23);else if(u.flagship)g.scale.setScalar(1.17);this.unitGroup.add(g);this.groups.set(u.id,g);let label=document.createElement('div');label.className='unit-label '+(u.team?'enemy':'friendly');label.innerHTML='<span></span><i><b></b></i>';this.labels.append(label);this.labelsMap.set(u.id,label);g.rotation.y=u.team?Math.PI:0;}g.visible=true;if(!this.animations.some(a=>a.id===u.id))g.position.set(u.x-s.w/2+.5,(A.D[u.type].branch==='Air'&&!u.landed?1.1:.04)+A.elevation(s,A.tile(s,u.x,u.y)),u.y-s.h/2+.5);let l=this.labelsMap.get(u.id);l.style.display='block';l.classList.toggle('selected',u.id===this.selectedId);l.classList.toggle('damaged',u.hp<u.maxHp);l.classList.toggle('critical-label',u.disabled||!u.ammo.some(n=>n>0));l.querySelector('span').textContent=u.disabled?'IMMOBILIZED':!u.ammo.some(n=>n>0)?'NO AMMO':u.landed?'LANDED':u.courier?'CONVOY':u.battery?'SIEGE BATTERY':u.strongpoint?'FORTIFIED':u.flagship?'FLAGSHIP':u.command?'COMMAND':u.team===0?(u.fired?'✓':u.moved?'•':'••'):'';l.querySelector('b').style.width=(u.hp/u.maxHp*100)+'%';});this.tileGroup.traverse(g=>{if(g.userData.flag){let t=g.userData.facility;if(g.userData.owner!==t.owner){g.userData.owner=t.owner;this.staticFaces=null;}g.userData.flag.material=mat(t.owner===0?colors.blue:t.owner===1?colors.red:0x9c9b7a);}});}
+ if(u.battery)g.scale.setScalar(1.55);else if(u.strongpoint)g.scale.setScalar(1.23);else if(u.flagship)g.scale.setScalar(1.17);this.unitGroup.add(g);this.groups.set(u.id,g);let label=document.createElement('div');label.className='unit-label '+(u.team?'enemy':'friendly');label.innerHTML='<span></span><i><b></b></i>';this.labels.append(label);this.labelsMap.set(u.id,label);g.rotation.y=u.team?Math.PI:0;}g.visible=true;if(!this.animations.some(a=>a.id===u.id))g.position.set(u.x-s.w/2+.5,(A.D[u.type].branch==='Air'&&!u.landed?1.1:.04)+A.elevation(s,A.tile(s,u.x,u.y)),u.y-s.h/2+.5);let l=this.labelsMap.get(u.id);l.style.display='block';l.classList.toggle('selected',u.id===this.selectedId);l.classList.toggle('damaged',u.hp<u.maxHp);l.classList.toggle('critical-label',u.disabled||A.pinned(s,u)||!u.ammo.some(n=>n>0));l.querySelector('span').textContent=u.disabled?'IMMOBILIZED':A.pinned(s,u)?'PINNED':u.guard?'OVERWATCH':!u.ammo.some(n=>n>0)?'NO AMMO':u.landed?'LANDED':u.courier?'CONVOY':u.battery?'SIEGE BATTERY':u.strongpoint?'FORTIFIED':u.flagship?'FLAGSHIP':u.command?'COMMAND':u.team===0?(u.fired?'✓':u.moved?'•':'••'):'';l.querySelector('b').style.width=(u.hp/u.maxHp*100)+'%';});this.tileGroup.traverse(g=>{if(g.userData.flag){let t=g.userData.facility;if(g.userData.owner!==t.owner){g.userData.owner=t.owner;this.staticFaces=null;}g.userData.flag.material=mat(t.owner===0?colors.blue:t.owner===1?colors.red:0x9c9b7a);}});}
 mark(selected,moves,targets){this.selectedId=selected?.id||null;this.dirty=true;this.clear(this.markGroup);let s=this.state;const mark=(x,y,col,h)=>{let m=box(this.markGroup,col,x-s.w/2+.5,A.groundHeight(s,x,y)+.065+(h||0),y-s.h/2+.5,.87,.025,.87);return m;};if(selected){const region=new Set(moves.map(p=>p.x+','+p.y));moves.forEach(p=>{let x=p.x-s.w/2+.5,z=p.y-s.h/2+.5;box(this.markGroup,0x48bea5,x,A.groundHeight(s,p.x,p.y)+.06,z,.24,.018,.24);});A.rangeTiles(s,selected).forEach(p=>{let x=p.x-s.w/2+.5,z=p.y-s.h/2+.5;for(let side of [-1,1]){box(this.markGroup,0xcf8d51,x+side*.39,A.groundHeight(s,p.x,p.y)+.09,z,.022,.02,.78);box(this.markGroup,0xcf8d51,x,A.groundHeight(s,p.x,p.y)+.09,z+side*.39,.78,.02,.022);}});moves.forEach(p=>{let x=p.x-s.w/2+.5,z=p.y-s.h/2+.5;for(let [dx,dy]of [[1,0],[-1,0],[0,1],[0,-1]])if(!region.has((p.x+dx)+','+(p.y+dy)))box(this.markGroup,0x3c8e80,x+dx*.46,A.groundHeight(s,p.x,p.y)+.07,z+dy*.46,dx?.035:.94,.018,dy?.035:.94);});targets.forEach(u=>{let x=u.x-s.w/2+.5,z=u.y-s.h/2+.5;for(let side of [-1,1]){box(this.markGroup,0xc45c43,x+side*.42,A.groundHeight(s,u.x,u.y)+.08,z,.035,.03,.84);box(this.markGroup,0xc45c43,x,A.groundHeight(s,u.x,u.y)+.08,z+side*.42,.84,.03,.035);}});let x=selected.x-s.w/2+.5,z=selected.y-s.h/2+.5;for(let side of [-1,1]){box(this.markGroup,0xf4d98c,x+side*.47,A.groundHeight(s,selected.x,selected.y)+.11,z,.045,.05,.98);box(this.markGroup,0xf4d98c,x,A.groundHeight(s,selected.x,selected.y)+.11,z+side*.47,.98,.05,.045);}}
 if(s.warningZones?.length)for(const warning of s.warningZones){
  const locations=[[0,0],[1,0],[-1,0],[0,1],[0,-1]];
@@ -578,6 +578,11 @@ events(){
    this.animations=this.animations.filter(a=>a.id!==ev.id);
    this.animations.push({...ev,start:now,duration:Math.min(2200,Math.max(230,ev.path.length*millis))});
   }else if(ev.kind==='attack'||ev.kind==='counter')this.makeShot(ev,now);
+  else if(ev.kind==='morale'&&this.motion&&this.labels?.append){
+   const tag=document.createElement('div');tag.className='damage pinned-pop';
+   tag.textContent='PINNED';tag.style.display='block';this.labels.append(tag);
+   this.effects.push({kind:'pin',el:tag,x:ev.x,y:ev.y,start:now,duration:780});
+  }
  }
  this.sync();
 }
@@ -691,6 +696,13 @@ retireEffect(e){
    const elapsed=now-e.start;
    if(elapsed>=e.duration){
     this.retireEffect(e);return false;
+   }
+   if(e.kind==='pin'){
+    if(e.el){
+     const f=elapsed/e.duration,pt=this.project(e.x-s.w/2+.5,A.groundHeight(s,e.x,e.y)+1.2+f*.34,e.y-s.h/2+.5);
+     e.el.style.transform='translate('+Math.round(pt.x)+'px,'+Math.round(pt.y)+'px)';
+     e.el.style.opacity=String(1-f);
+    }return true;
    }
    if(e.kind==='dust'){
     const f=elapsed/e.duration;e.smoke.scale.setScalar(e.baseSize*(1+f*2));
