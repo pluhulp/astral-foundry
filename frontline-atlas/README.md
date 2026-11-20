@@ -1,46 +1,71 @@
 # Frontline Atlas: Reforged
 
-Independent browser-based, turn-based combined-arms game influenced by tabletop military tactics, including several mechanics popularized by *Noobs in Combat*. Not affiliated with its creators; all code and procedural artwork in this rebuild is independently authored.
+A **standalone, browser-based, turn-based combined-arms tactics game**, influenced by the broad gameplay structure of *Noobs in Combat* but independently developed. It uses original procedural graphics and its own title, interface details, data, and missions. It is **not** affiliated with the creators of Noobs in Combat.
 
-## Play
+**Play:** https://pluhulp.github.io/astral-foundry/frontline-atlas/
 
-https://pluhulp.github.io/astral-foundry/frontline-atlas/
+## The complete gameplay pass (November 2026)
 
-## Current rebuild
+### Lobby and profile
 
-- 10 campaign operations across land, river, coastal, armored, forest, naval and air theaters
-- 23 unit types in infantry, mechanized, support, naval and aircraft branches
-- Click-to-select, tile movement, range targeting, independent secondary weapons
-- Suppression, forest/building concealment, artillery spotters, veterancy, ammunition/fuel logistics, overwatch
-- Three difficulties (standard, veteran, expert); objectives generate income and expand deployment capacity
-- Isometric unit miniatures, four-angle camera, movement animations, damage effects and distinct terrain
-- Branching research dependencies and persistent campaign stars and unit unlocks
+- A rebuilt command lobby with **Campaigns, Solo Skirmish, Research Tree, Loadouts, Profile, Market, Appearance, Daily Rewards, Settings/Saves, and Field Manual**
+- Three persistent meta currencies: research points (★), gold nuggets (⬡), and gems (◆). **TIX** are earned and spent within battles; earning more tickets and capturing outposts increases reinforcement options.
+- Campaign results show research earnings, nuggets, gems, turns, kills, and per-unit combat XP
+- XP persists **even for unit types that are destroyed during battle**, provided they previously participated; new units gain veterancy bonuses based on permanent unit XP
+- Profile counters for wins, battles, eliminations, deployed units, battle tickets earned and spent
+- Daily free resource claims; exchange market with no real-money payments
 
-## Tactical depth update
+### Progression
 
-- Entrenchment: eligible unspent foot units can DIG IN for +2 defense; movement cancels that stance
-- Flanking: close allied land support reduces effective cover on an attacked target
-- Contested capture: a unit cannot secure a site while hostile land troops threaten its adjacent tiles; control is reevaluated each turn
-- Reinforcement staging: choose a legal spawn tile in your rear area or beside an uncontested captured site rather than receiving random deployments
-- Smoke: mortar and artillery units can spend a shot to place a temporary smoke screen blocking longer-range spotting
-- Units now animate along their calculated movement route, with muzzle trails, damage effects and terrain elevation graphics
+- **24 distinct unit types** across infantry, transports, armored units, artillery, naval units, and aircraft
+- Five research lanes with prerequisites and experience thresholds
+- Nine optional experience-gated equipment variants that change range, armor, damage, health, or vision
+- User-configurable deployment **loadouts of up to eight blueprints**, with additional slots purchasable using earned gems
+- Five color schemes: Classic Olive, Dune Expedition, Winter Brigade, Midnight Corps, Crimson Legion
+- Normal / Tryhard / Rigged AI difficulty, with changing reinforcement pacing and reward multipliers
 
-## Controls
+### Battle system
 
-Left click selects a unit, moves to a highlighted destination or attacks a valid enemy. Click a reinforcement in the deployment tray and then click a highlighted staging tile. ATTACK and SECONDARY select an attack profile. Right-drag pans, scroll zooms, Q/E rotates, WASD pans, Enter/Space ends turn, Esc cancels.
+- Ten built-in maps; three victory formats: control every objective, eliminate enemy units, or survive timed defenses
+- Dedicated solo skirmish selection with smaller repeatable progression rewards
+- Tile-based movement with weighted terrain costs; movement animation follows valid routes
+- Sight, explored fog-of-war and live enemy detection; scouting affects what appears in the minimap
+- Morale, pinning, fallback behavior and Rally; infantry can dig in to strengthen defensive terrain cover
+- Flanking support, dedicated armor penetration, veterancy, multi-weapon firing, and combined-arms counters
+- Artillery spotter requirements, temporary obscuring smoke, deliberate overwatch reaction fire
+- Limited ammunition and fuel, nearby resupply, repairs, and specialized transport boarding/unloading
+- Player-selected rear and forward reinforcement locations, with forward deployment enabled by captured sites
+- Enemy AI chooses targets, seeks terrain cover, recaptures objectives, supplies damaged units and selects reinforcement counters
+- Original low-poly isometric terrain/unit renderings, raised terrain, roads, bridges, buildings, forests, ships, aircraft, shell traces and damage effects
 
-## Balance
+### Saving and controls
 
-Enemy reinforcement cadence is every 3 turns (standard), 2 turns (veteran), or every turn (expert), with a modest expert attack bonus. Captured objectives grant resources and additional deployment slots.
+- Research/currency/profile progress saves to browser localStorage automatically
+- Solo battles support checkpoints, resumes (up to three permitted recalls) and seven-day save expiration
+- Settings include reduced-motion graphics and **export/import of a portable JSON save**
+- Click a friendly troop to select it; click blue highlighted movement tiles to relocate it, or valid enemy targets to attack
+- Use the unit panel for primary/secondary weapons, resupply, rally, dig in, smoke, overwatch, boarding and unloading
+- Select Reinforcements and click a legal deployment tile
+- Right-drag = pan; scroll = zoom; Q/E = rotate; F = focus selected; R = frame entire map; Enter/Space = end turn; Escape = cancel
 
-## QA
+## Technical / QA
 
-The rebuilt inline JavaScript passed syntax checks, mocked DOM/Canvas rendering calls, map spawning and enemy-turn smoke tests for all ten missions. A simple objective-driven automated player won several standard scenarios in a simulation. These are **not** real-browser acceptance tests and do not prove the late-game balance or visual experience is final.
+The project is served as static HTML/CSS/JavaScript from `index.html` and does not require a build process. All UI and procedural miniature models are self-contained.
 
-## Known scope gaps
+The latest version passed scripted JavaScript syntax, mocked DOM/menu initialization, mocked Canvas drawing, startup and enemy-turn simulations for ten scenarios, currency/result processing, smoke/rally, deployment, fog visibility data, and solo-save/resume checks.
 
-This is not a one-to-one recreation of Noobs in Combat. The Roblox title has far more content, a fully modeled 3D world, multiplayer, more complex transport and weapon mechanics, and deeper progression. Those features are not yet implemented here. No copyrighted game assets or audio are copied.
+**These are automated smoke checks, NOT complete tests in a real browser**. Graphics layout, visual polish, performance on Chromebook/iOS, mission-by-mission balance and all edge cases still require player acceptance testing.
 
-## Save data
+## Limits compared with Noobs in Combat
 
-Research stars, unlocks, completed operations and difficulty use browser localStorage under `frontline_atlas_reforged_v1`. Older versions remain recoverable in Git history. This release uses a new save key rather than pretending to migrate every previous battle state.
+This is **not** a full one-to-one recreation. NiC has substantially more maps and unit evolutions, several deep mission mechanics and perks not modeled here, Roblox multiplayer/co-op, a full 3D world with its own animations and assets, and a much larger balancing/testing history. The interface follows general menu organization rather than reproducing copyrighted artwork, audio or logos. This game makes no claim of integration with official Noobs in Combat accounts.
+
+## Save migration
+
+Meta progression is stored under `frontline_atlas_reforged_v1`. Older Reforged saves with the `stars` currency migrate their previous stars into research points. Current solo-battle checkpoints use `frontline_atlas_reforged_battle_v2`; this is distinct from meta progression. Export before clearing browser site data.
+
+## References consulted
+
+- [Noobs in Combat main menu guide](https://noobsincombat.fandom.com/wiki/Tutorial)
+- [Currency reference](https://noobsincombat.fandom.com/wiki/Currency)
+- [Community v6.0 changelog](https://www.reddit.com/r/NoobsInCombat/comments/1xfk308/changelog_how_to_migrate_your_data_from_the_old/)
