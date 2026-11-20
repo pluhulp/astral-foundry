@@ -150,3 +150,27 @@ test('range overlay includes other ready mounts even if the manually selected we
  assert(A.canAttackAny(s,gun,target));assert(A.prepareTargetWeapon(s,gun,target));
  assert.notEqual(gun.weapon,0);
 });
+
+test('pinned infantry loses firing opportunity, and medical aid restores cohesion',()=>{
+ const s=field(),gun=A.add(s,'rifle',0,5,7),target=A.add(s,'rifle',1,7,7);
+ gun.pressure=85;gun.pinnedUntil=s.turn;
+ assert(A.pinned(s,gun));assert(!A.canAttack(s,gun,target));
+ const medic=A.add(s,'medic',0,5,8);
+ medic.hp=medic.maxHp;
+ assert(A.useAbility(s,medic));
+ assert(!A.pinned(s,gun),'triage should clear disabling pressure');
+ assert(gun.pressure<=35);
+ assert(A.canAttack(s,gun,target),'recovered squad can act if it has not used an action');
+});
+test('isolated damaged infantry can surrender at extreme pressure, but nearby allies prevent routing',()=>{
+ const s=field(),suppressor=A.add(s,'mg',1,5,7),solo=A.add(s,'rifle',0,7,7);
+ solo.hp=Math.floor(solo.maxHp*.37);solo.pressure=91;
+ const n=s.kills;A.pressureHit(s,suppressor,solo,17);
+ assert.equal(solo.hp,0);assert(solo.surrendered);
+ assert.equal(s.kills,n); // friendly unit surrendered; no fictional enemy kill
+ const covered=A.add(s,'rifle',0,11,7);covered.hp=Math.floor(covered.maxHp*.36);covered.pressure=91;
+ const ally=A.add(s,'rifle',0,11,8);
+ A.pressureHit(s,suppressor,covered,17);
+ assert(covered.hp>0,'nearby teammates keep a panicked squad from surrendering');
+ assert(A.pinned(s,covered));
+});
