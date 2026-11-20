@@ -759,7 +759,8 @@ function tacticalThreat(s,u,p,targets){
   const distance=dist(v,p),indirect=has(v,'indirect');
   if(distance>range+1||distance<(indirect?2:1))continue;
   if(!indirect&&!lineOfSight(s,v,p))continue;
-  danger+=Math.max(...w.map(k=>k.power))*(distance<=range?1:.25);
+  const firepower=Math.max(...w.map(k=>k.power)),suppression=['mg','flak','quadflak'].includes(D[v.type].family)?1.18:1;
+  danger+=firepower*(distance<=range?1:.25)*suppression;
  }
  const tileCover=({forest:14,ruins:17,hill:8}[tile(s,p.x,p.y)?.terrain]||0);
  return Math.max(0,danger-tileCover);
@@ -772,7 +773,14 @@ function attackChoice(s,u,visible,focus){
   for(const v of visible)if(v.hp>0&&canAttack(s,u,v)){
    const n=damage(s,u,v),fatal=n>=v.hp;
    const threat=has(v,'resupply')?26:D[v.type].branch==='Navy'&&D[u.type].branch==='Navy'?52:has(v,'indirect')?20:0;
-   const score=Math.min(n,v.hp)*.65+(fatal?80:0)+(v.id===focus?27:0)+threat+(v.courier?90:0)+(v.flagship?80:0);
+   const pressureGain= Math.round(64*n/Math.max(1,v.maxHp))+(D[u.type].family==='mg'?18:0)+(has(u,'splash')?9:0);
+   const canPin=D[v.type].branch!=='Navy'&&D[v.type].branch!=='Air'&&!pinned(s,v)&&
+     (v.pressure||0)+pressureGain>=60;
+   const activeOverwatch=v.guard||v.sentry&&v.entrenched&&!v.fired;
+   // Prioritize stopping an actual approaching threat, not merely farming HP.
+   const score=Math.min(n,v.hp)*.65+(fatal?80:0)+(v.id===focus?27:0)+threat+
+     (v.courier?90:0)+(v.flagship?80:0)+(canPin?30:0)+(activeOverwatch?22:0)+
+     (v.surrendered?-60:0);
    if(!best||score>best.score)best={i,target:v,score};
   }
  }
