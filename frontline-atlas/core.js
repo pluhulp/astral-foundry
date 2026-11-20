@@ -242,7 +242,7 @@ function elevation(s,t){return t?groundHeight(s,t.x,t.y):0;}
 function rangeElevation(s,a,b){if(s.mission.biome!=='mountain'||D[a.type]?.branch==='Air'||D[a.type]?.branch==='Navy')return 0;return elevation(s,tile(s,a.x,a.y))-elevation(s,tile(s,b.x,b.y))>=.61?1:0;}
 function rng(seed){return ()=>{seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return ((t^t>>>14)>>>0)/4294967296;};}
 function make(m,difficulty='normal',upgrades={},deck=['rifle','scout','medic','light','supply']){
-const error=deckError(deck,m);if(error)throw new Error(error);const rand=rng(m.seed),w=24+(m.n%3)*2,h=18+(m.n%4)*2,mid=Math.floor(h/2),s={version:3,phase:'deployment',fog:true,deck:[...deck],mission:{...m},w,h,turn:1,side:0,credits:m.type==='defense'?20:m.type==='escort'||m.type==='counterbattery'?40:m.type==='battery'?22:m.type==='breach'?18:10,enemyCredits:8,difficulty,units:[],tiles:[],log:[],nextId:1,result:null,hold:0,seized:0,kills:0,losses:0,upgrades:{...upgrades},events:[],pads:[],seen:[],home:{x:2,y:mid},enemyHome:{x:w-3,y:mid+(m.n%3)-1}};
+const error=deckError(deck,m);if(error)throw new Error(error);const rand=rng(m.seed),w=24+(m.n%3)*2,h=18+(m.n%4)*2,mid=Math.floor(h/2),s={version:3,phase:'deployment',fog:true,deck:[...deck],mission:{...m},w,h,turn:1,side:0,credits:m.type==='defense'?20:m.type==='escort'||m.type==='counterbattery'?40:m.type==='battery'?22:m.type==='breach'?18:10,enemyCredits:difficulty==='easy'?5:difficulty==='hard'?12:8,difficulty,units:[],tiles:[],log:[],nextId:1,result:null,hold:0,seized:0,kills:0,losses:0,upgrades:{...upgrades},events:[],pads:[],seen:[],home:{x:2,y:mid},enemyHome:{x:w-3,y:mid+(m.n%3)-1}};
 for(let y=0;y<h;y++)for(let x=0;x<w;x++){
 const edge=1+Math.floor((Math.sin(y*.7+m.seed)*.5+.5)*3),inset=1+Math.floor((Math.cos(x*.5+m.n)*.5+.5)*2);const shape=m.n%6,cut=shape===0?Math.abs(y-mid)<3&&x>w-6:shape===1?x>w*.45&&x<w*.65&&y<mid-3:shape===2?(x<4||x>w-5)&&(y<5||y>h-6):shape===3?y<Math.floor(x*.22)-1:shape===4?y>h-2-Math.floor(Math.abs(x-w/2)*.3):x<5&&Math.abs(y-mid)>4;const ridge=Math.sin((x+m.seed*.001)*.43)*.43+Math.cos((y-m.seed*.002)*.51)*.35+Math.sin((x+y)*.24+m.n)*.24;let terrain=cut||x<edge-1||x>w-edge||y<inset-1||y>h-inset?'void':ridge>.53?'mountain':ridge>.25?'hill':ridge<-.35?'forest':'plain';if(terrain==='plain'&&rand()<.06)terrain='forest';
 if(m.biome==='desert'&&terrain==='forest')terrain='dune';if(m.biome==='urban'&&terrain==='forest')terrain='ruins';if(m.biome==='toy'&&terrain==='forest')terrain='ruins';if(m.biome==='mountain'&&terrain==='plain'&&rand()<.08)terrain='forest';
@@ -290,11 +290,11 @@ enemies.forEach((type,i)=>{let x=w-5-(i%3)*2,y=mid-5+Math.floor(i/3)*3;road(x,y)
 // Opponent patrols scout, skirmish or hold road choke points and attract early
 // decisions. Scenario-specific assault/wave missions retain their authored setup.
 if(!['intercept','counterbattery','escort'].includes(m.type)){
- const wings=m.n===0?1:m.type==='defense'?1:2,
+ const wings=difficulty==='easy'?1:difficulty==='hard'?(m.n===0?2:3):m.n===0?1:m.type==='defense'?1:2,
   doctrines=[['scout','rifle'],['rifle','mg'],['scout','rocket'],['light','rifle']],
   picks=doctrines[m.n%doctrines.length];
  for(let i=0;i<wings;i++){
-  const type=picks[i],goal={x:Math.floor(w*(i===0?.51:.58)),y:mid+(i?3:-3)};
+  const type=picks[i%picks.length],goal={x:Math.floor(w*(i===0?.51:.58)),y:mid+(i?3:-3)};
   const spots=s.tiles.filter(t=>!t.facility&&!t.pad&&!at(s,t.x,t.y)&&
    passable(s,{type},t.x,t.y)&&t.x>=Math.floor(w*.40)&&t.x<=Math.floor(w*.64)&&
    dist(t,s.home)>=5).sort((a,b)=>dist(a,goal)-dist(b,goal));
@@ -402,7 +402,7 @@ function batteryStrike(s){
   for(const [dx,dy] of impact){
    const p={x:z.x+dx,y:z.y+dy},t=tile(s,p.x,p.y);if(!t)continue;
    const victim=t.terrain==='void'?null:at(s,p.x,p.y);
-   const amount=victim?Math.max(8,Math.round((dx===0&&dy===0?39:24)*(s.difficulty==='hard'?1.15:1))):0;
+   const amount=victim?Math.max(8,Math.round((dx===0&&dy===0?39:24))):0;
    const before=victim?.hp;
    if(victim)hurt(s,victim,amount);
    s.events.push({kind:'attack',from:{x:gun.x,y:gun.y},to:p,damage:amount,id:victim?.id,sourceType:gun.type,targetType:victim?.type,explosive:true,destroyed:!!(before>0&&victim.hp===0)});
@@ -447,7 +447,7 @@ function launch(s){if(s.phase!=='deployment'||!alive(s,0).some(u=>!u.courier))re
 function tile(s,x,y){return x>=0&&y>=0&&x<s.w&&y<s.h?s.tiles[y*s.w+x]:null;}
 
 function at(s,x,y){return s.units.find(u=>u.hp>0&&!u.carried&&u.x===x&&u.y===y);}
-function add(s,type,team,x,y){let d=D[type],health=team===0?d.hp+(s.upgrades[type]||0)*8:Math.round(d.hp*(s.difficulty==='easy'?.8:s.difficulty==='hard'?1.15:1));let u={id:s.nextId++,type,team,x,y,hp:health,maxHp:health,landed:false,disabled:false,moved:false,fired:false,guard:false,xp:0,weapon:0,ammo:d.weapons.map(w=>w.capacity),used:d.weapons.map(()=>false),reserve:1,serviceUsed:Array(d.serviceSlots).fill(false),pressure:0,pinnedUntil:-1,watchSpentTurn:-1};s.units.push(u);return u;}
+function add(s,type,team,x,y){let d=D[type],health=team===0?d.hp+(s.upgrades[type]||0)*8:d.hp;let u={id:s.nextId++,type,team,x,y,hp:health,maxHp:health,landed:false,disabled:false,moved:false,fired:false,guard:false,xp:0,weapon:0,ammo:d.weapons.map(w=>w.capacity),used:d.weapons.map(()=>false),reserve:1,serviceUsed:Array(d.serviceSlots).fill(false),pressure:0,pinnedUntil:-1,watchSpentTurn:-1};s.units.push(u);return u;}
 // v10 front-line doctrine: fire can win ground without immediately destroying a squad.
 // Pressure (0..100) is intentionally not a second HP bar. Ships/aircraft are exempt.
 function pinned(s,u){return !!u&&D[u.type]?.branch!=='Navy'&&D[u.type]?.branch!=='Air'&&(u.pinnedUntil??-1)>=s.turn;}
@@ -948,7 +948,7 @@ function relayCounterattack(s){
 function counterpressure(s){if(!(s.alerts>0)||!s.lastCapture||s.mission.type==='defense')return;const h=tile(s,s.enemyHome.x,s.enemyHome.y);if(h.owner!==1)return;const capture=s.lastCapture;for(const type of ['rocket','rifle']){if(s.enemyCredits<D[type].cost||alive(s,1).length>=16)break;const candidates=s.tiles.filter(t=>!at(s,t.x,t.y)&&!t.facility&&passable(s,{type},t.x,t.y)&&dist(t,capture)>=4&&dist(t,capture)<=8&&dist(t,h)<=10).sort((a,b)=>dist(a,capture)-dist(b,capture));const t=candidates[0];if(!t)continue;let u=add(s,type,1,t.x,t.y);u.entrenched=false;s.enemyCredits-=D[type].cost;log(s,'Meridian counterattack approaching the captured position.');}}
 
 function fleetReinforcements(s){
- if(!navalMap(s.mission)||s.turn<3||s.turn%3!==0)return;
+ if(!navalMap(s.mission)||s.turn<3||s.turn%(s.difficulty==='hard'?2:3)!==0)return;
  const enemyFleet=alive(s,1).filter(v=>D[v.type].branch==='Navy');
  if(enemyFleet.length>=7)return;
  const revealed=alive(s,0).filter(v=>visibleTo(s,v,1)),capital=revealed.some(v=>['battleship','carrier','destroyer'].includes(D[v.type].family));
@@ -986,7 +986,7 @@ function beginPlayer(s){if(s.result||s.phase==='deployment')return;s.side=0;s.tu
  if(s.mission.type==='hold'&&relay?.owner===0&&!held&&s.hold>0)log(s,'RELAY CONTESTED: hostiles or suppression broke your hold. Clear the perimeter.');
  s.hold=held?s.hold+1:0;s.seized=s.tiles.filter(t=>t.objective).every(t=>t.owner===0)?(s.seized||0)+1:0;
 alive(s,0).forEach(u=>{resetUnit(u);if(u.battery){u.ammo=D[u.type].weapons.map(w=>w.capacity);u.bombardTurn=s.turn;}const t=tile(s,u.x,u.y);if(t.owner===0&&t.facility==='town')u.hp=Math.min(u.maxHp,u.hp+12);if(t.owner===0&&t.facility==='airfield'&&u.landed){u.hp=Math.min(u.maxHp,u.hp+20);u.ammo=D[u.type].weapons.map(w=>w.capacity);u.reserve=1;}if(!u.carried&&D[u.type].branch==='Infantry'&&alive(s,0).some(v=>has(v,'hospital')&&dist(u,v)<=2))u.hp=Math.min(u.maxHp,u.hp+8);});
-s.enemyCredits=Math.min(24,s.enemyCredits+Math.max(2,income(s,1)));advanceConvoy(s);specialWave(s);batteryWarnings(s);wave(s);relayCounterattack(s);fleetReinforcements(s);counterRaids(s);counterpressure(s);if((s.turn%2===0||(s.alerts||0)>0)&&alive(s,1).length<16&&s.mission.type!=='eliminate'&&s.mission.type!=='defense'&&s.mission.type!=='counterbattery'&&s.mission.type!=='escort'){const h=tile(s,s.enemyHome.x,s.enemyHome.y);if(h.owner===1){const heavy=alive(s,0).some(u=>visibleTo(s,u,1)&&D[u.type].armor>=15),air=alive(s,0).some(u=>visibleTo(s,u,1)&&D[u.type].branch==='Air'),options=air?['aa','rocket','rifle']:heavy?['rocket','td','rifle']:['rifle','light','scout','arty'];let type=options[(s.turn/2-1)%options.length];if(s.enemyCredits>=D[type].cost){let t=s.tiles.find(t=>dist(t,h)===1&&!at(s,t.x,t.y)&&passable(s,{type},t.x,t.y));if(t){add(s,type,1,t.x,t.y);s.enemyCredits-=D[type].cost;}}}s.alerts=Math.max(0,(s.alerts||0)-1);s.lastCapture=null;}
+s.enemyCredits=Math.min(24,s.enemyCredits+(s.difficulty==='easy'?1:s.difficulty==='hard'?3:2)+Math.min(1,s.tiles.filter(t=>t.owner===1&&t.facility==='factory').length));advanceConvoy(s);specialWave(s);batteryWarnings(s);wave(s);relayCounterattack(s);fleetReinforcements(s);counterRaids(s);counterpressure(s);if((s.turn%2===0||(s.alerts||0)>0)&&alive(s,1).length<16&&s.mission.type!=='eliminate'&&s.mission.type!=='defense'&&s.mission.type!=='counterbattery'&&s.mission.type!=='escort'){const h=tile(s,s.enemyHome.x,s.enemyHome.y);if(h.owner===1){const heavy=alive(s,0).some(u=>visibleTo(s,u,1)&&D[u.type].armor>=15),air=alive(s,0).some(u=>visibleTo(s,u,1)&&D[u.type].branch==='Air'),options=air?['aa','rocket','rifle']:heavy?['rocket','td','rifle']:['rifle','light','scout','arty'];let type=options[(s.turn/2-1)%options.length];if(s.enemyCredits>=D[type].cost){let t=s.tiles.find(t=>dist(t,h)===1&&!at(s,t.x,t.y)&&passable(s,{type},t.x,t.y));if(t){add(s,type,1,t.x,t.y);s.enemyCredits-=D[type].cost;}}}s.alerts=Math.max(0,(s.alerts||0)-1);s.lastCapture=null;}
 log(s,'Round '+s.turn+': +'+gain+' supply.');check(s);}
 function unlock(type,profile){return !!profile?.unlocked?.includes(type);}
 const families=(typeof module!=='undefined'?require('./roster.js'):root.AtlasRoster)(D,abilities,starters);
