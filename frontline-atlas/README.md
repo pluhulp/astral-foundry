@@ -21,11 +21,19 @@
 - Relevant public YouTube references: [Noobs in Combat beginner gameplay](https://www.youtube.com/watch?v=6yYGMjEkrwo), [tutorial/boot camp](https://www.youtube.com/watch?v=YwIvgJnjy0U), [tactics](https://www.youtube.com/watch?v=o2j21CBzaB0). The searchable video descriptions and metadata were reviewed, **not** claimed as frame-by-frame footage analysis.
 
 ## Follow-up areas for a full identity rebuild
+### Additional systems completed in this pass
+- Vehicle crews can surrender their surviving ground hulls as neutral salvage; adjacent ready infantry can secure them with a single battlefield click, consuming an action, then require resupply to repair their seized vehicle. Battles containing neutral vehicles remain valid v3 saves.
+- Original optional synthesized audio is available in Settings (off by default), generated in-browser without music or downloads.
+- Fog of war now reveals progressively while troops traverse path tiles rather than only snapping at the destination; enemy model visibility tracks walking positions.
+- First Light now includes an authored early contested approach with initial enemy contact verified by deterministic simulation, instead of generic distant deployment.
+- A more responsive enemy-turn loop skips artificial pauses on idle actions. Objective counterattack count is visible on the HUD.
+- A sourced mechanics-by-mechanics audit, evidence limits and human playtest plan are recorded in [GAMEPLAY_RESEARCH.md](./GAMEPLAY_RESEARCH.md).
+
 The following are **not finished** by v10 and require more playtesting or authored content:
 1. Objective-specific mission scripts, enemy formations, tutorial/onboarding, and hand-authored stage pacing.
-2. Fuel, multi-move, resupply routes, transports, capturable abandoned vehicles, and radio-battery linking.
+2. Fuel, multi-move, resupply routes, deeper transports and radio-battery linking; abandoned vehicle capture is implemented in a simplified form.
 3. Detailed weapon penetration tables, squad-level casualties, and deeper morale state transitions.
-4. Animated fog reveal along routes, tactical audio, impact/audio mixing, effect timbre, UI timing and sound feedback.
+4. Deep GPU verification of animated fog, more varied audio/impact mixing, effect timbre, advanced UI timing and refined sound feedback.
 5. Measured playtesting against curated scenarios—opening missions, naval flagship, siege battery, convoy and hold relay—using metrics like time-to-contact, casualty rate, positioning decisions, turn length and viable counter-loadouts.
 6. Role/tech-tree economy evaluation across all 312 configurations, to reduce duplicated units and make counter roles more meaningful.
 
