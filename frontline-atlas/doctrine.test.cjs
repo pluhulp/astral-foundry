@@ -46,7 +46,7 @@ test('deliberate overwatch reacts to incoming movement, consumes ammo once, then
  assert(s.events.some(e=>e.kind==='counter'&&e.id===mover.id));
 });
 test('artillery requires a scouting network beyond local range and works with a nearby scout',()=>{
- const s=field(),gun=A.add(s,'arty',0,4,8),target=A.add(s,'rifle',1,9,8);
+ const s=field(),gun=A.add(s,'arty',0,4,8),target=A.add(s,'rifle',1,10,8);gun.rangeBoostTurn=s.turn;
  assert(!A.hasSpotter(s,gun,target));
  assert(!A.canAttack(s,gun,target));
  A.add(s,'scout',0,7,8);
