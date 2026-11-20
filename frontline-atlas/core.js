@@ -286,6 +286,24 @@ for(const lane of [mid-2,mid+2])for(let x=3;x<w-3;x++){
 }
 const enemies=['rifle','rocket','light','scout','supply',...(m.n>0?['mg']:[]),...(m.difficulty>2?['td','arty']:[]),...(m.ch>2?['aa','command']:[])];
 enemies.forEach((type,i)=>{let x=w-5-(i%3)*2,y=mid-5+Math.floor(i/3)*3;road(x,y);let u=add(s,type,1,x,y);if(i%3===0)u.entrenched=true;if(m.type==='strike'&&i===2)u.command=true;});
+// Deliberate mid-map vanguard instead of a six-turn march across empty squares.
+// Opponent patrols scout, skirmish or hold road choke points and attract early
+// decisions. Scenario-specific assault/wave missions retain their authored setup.
+if(!['intercept','counterbattery','escort'].includes(m.type)){
+ const wings=m.n===0?1:m.type==='defense'?1:2,
+  doctrines=[['scout','rifle'],['rifle','mg'],['scout','rocket'],['light','rifle']],
+  picks=doctrines[m.n%doctrines.length];
+ for(let i=0;i<wings;i++){
+  const type=picks[i],goal={x:Math.floor(w*(i===0?.51:.58)),y:mid+(i?3:-3)};
+  const spots=s.tiles.filter(t=>!t.facility&&!t.pad&&!at(s,t.x,t.y)&&
+   passable(s,{type},t.x,t.y)&&t.x>=Math.floor(w*.40)&&t.x<=Math.floor(w*.64)&&
+   dist(t,s.home)>=5).sort((a,b)=>dist(a,goal)-dist(b,goal));
+  if(spots[0]){
+   const t=spots[0],u=add(s,type,1,t.x,t.y);
+   u.entrenched=type==='mg';u.sentry=type==='mg';u.vanguard=true;
+  }
+ }
+}
 if(navalMap(m)){
  // A proper opposing task group: smaller waters get three ships, coastal seas
  // start with a four/five-vessel combined-arms fleet. No inflated weapon stats.
