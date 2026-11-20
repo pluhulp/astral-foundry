@@ -460,7 +460,7 @@ function hasSpotter(s,a,b){
    (has(v,'recon')||has(v,'radar')||has(v,'command'))&&dist(v,a)<=9&&dist(v,b)<=6&&lineOfSight(s,v,b))||
    s.tiles.some(t=>t.facility==='relay'&&t.owner===a.team&&dist(t,b)<=5);
 }
-function canAttack(s,a,b,retaliate=false){if(s.phase==='deployment'||!a||!b||a.landed||!visibleTo(s,b,a.team)||a.hp<=0||b.hp<=0||a.carried||b.carried||a.team===b.team||(!retaliate&&!canFire(a))||a.ammo[a.weapon||0]<=0)return false;let d=dist(a,b),def=weapon(a);if(has(a,'antiShip')&&D[b.type].branch!=='Navy')return false;if(D[b.type].branch==='Air'&&!b.landed&&!has(a,'antiAir')&&D[a.type].branch!=='Air'&&!['rifle','mg'].includes(D[a.type].family))return false;return hasSpotter(s,a,b)&&(has(a,'indirect')||lineOfSight(s,a,b))&&d<=(a.battery?13:def.range)+(a.rangeBoostTurn===s.turn?2:0)+(tile(s,a.x,a.y)?.terrain==='hill'?1:0)+rangeElevation(s,a,b)&&d>=(has(a,'indirect')?2:1)&&(!has(a,'indirect')||a.battery||D[a.type].branch==='Navy'||!a.moved||a.setupTurn===s.turn);}
+function canAttack(s,a,b,retaliate=false){if(s.phase==='deployment'||!a||!b||a.landed||!visibleTo(s,b,a.team)||a.hp<=0||b.hp<=0||a.carried||b.carried||a.team===b.team||b.abandoned||(!retaliate&&!canFire(a))||a.ammo[a.weapon||0]<=0)return false;let d=dist(a,b),def=weapon(a);if(has(a,'antiShip')&&D[b.type].branch!=='Navy')return false;if(D[b.type].branch==='Air'&&!b.landed&&!has(a,'antiAir')&&D[a.type].branch!=='Air'&&!['rifle','mg'].includes(D[a.type].family))return false;return hasSpotter(s,a,b)&&(has(a,'indirect')||lineOfSight(s,a,b))&&d<=(a.battery?13:def.range)+(a.rangeBoostTurn===s.turn?2:0)+(tile(s,a.x,a.y)?.terrain==='hill'?1:0)+rangeElevation(s,a,b)&&d>=(has(a,'indirect')?2:1)&&(!has(a,'indirect')||a.battery||D[a.type].branch==='Navy'||!a.moved||a.setupTurn===s.turn);}
 function fleetEscort(s,b){
  if(!b.flagship||D[b.type].branch!=='Navy')return null;
  return alive(s,b.team).find(v=>v.id!==b.id&&!v.carried&&D[v.type].branch==='Navy'&&dist(v,b)<=4);
@@ -492,7 +492,7 @@ function shake(s,attacker,victim,n){
  if(!victim||victim.hp<=0||!moraleMax(victim))return;
  const prior=resolve(victim),kind=D[attacker?.type]?.family||'';
  let loss=Math.max(1,Math.round(n/Math.max(1,victim.maxHp)*5));
- if(['mg','flak','quadflak','grenadier','rocket','mortar','flamer'].includes(kind)||attacker?.suppressTurn===s.turn)loss+=2;
+ if(['mg','flak','quadflak','grenadier','rocket','mortar','flamer'].includes(kind)||attacker?.suppressTurn===s.turn)loss+=2;if(D[victim.type].branch==='Armor'&&!has(attacker,'antiArmor')&&D[attacker.type].branch==='Infantry')loss=Math.max(1,loss-2);
  loss=Math.max(1,loss-braceBonus(s,victim));
  if(alive(s,victim.team).some(v=>v.id!==victim.id&&!v.carried&&has(v,'command')&&dist(v,victim)<=2))loss=Math.max(1,loss-1);
  victim.morale=Math.max(0,prior-loss);victim.underFireTurn=s.turn;
@@ -503,6 +503,15 @@ function shake(s,attacker,victim,n){
   s.events.push({kind:'morale',id:victim.id,x:victim.x,y:victim.y,value:victim.morale});
  }
  if(victim.morale===0){
+  if(D[victim.type].branch==='Armor'&&!victim.courier&&!victim.battery&&!victim.strongpoint&&!victim.anchored){
+   const former=victim.team;victim.team=2;victim.abandoned=true;
+   victim.disabled=true;victim.fired=victim.moved=true;victim.guard=false;victim.entrenched=false;
+   victim.morale=0;victim.pinnedUntil=0;
+   s.events.push({kind:'abandoned',id:victim.id,x:victim.x,y:victim.y});
+   log(s,D[victim.type].name+' crew abandoned its vehicle. Infantry can claim the hull.');
+   if(former===1)check(s);
+   return;
+  }
   const opts=[[1,0],[-1,0],[0,1],[0,-1]].map(([dx,dy])=>({x:victim.x+dx,y:victim.y+dy}))
    .filter(p=>passable(s,victim,p.x,p.y)&&!at(s,p.x,p.y))
    .sort((a,b)=>dist(b,attacker||victim)-dist(a,attacker||victim));
@@ -516,10 +525,22 @@ function shake(s,attacker,victim,n){
  }
 }
 function recoverMorale(s,u){
- if(!moraleMax(u))return;
+ if(u.abandoned||!moraleMax(u))return;
  const quiet=u.underFireTurn!==s.turn&&u.underFireTurn!==s.turn-1;
  const commander=alive(s,u.team).some(v=>v.id!==u.id&&has(v,'command')&&dist(v,u)<=2);
  u.morale=Math.min(6,resolve(u)+(quiet?1:0)+(commander?1:0));
+}
+function claimVehicle(s,infantry,hull){
+ if(!infantry||!hull||!hull.abandoned||hull.team!==2||s.phase==='deployment'||s.result||
+ s.side!==infantry.team||infantry.hp<=0||infantry.moved||infantry.fired||pinned(s,infantry)||
+ D[infantry.type].branch!=='Infantry'||!has(infantry,'capture')||dist(infantry,hull)!==1)return false;
+ hull.team=infantry.team;hull.abandoned=false;hull.morale=3;hull.disabled=true;
+ hull.hp=Math.max(1,hull.hp);hull.readyTurn=s.turn+1;hull.fired=hull.moved=true;
+ hull.used=D[hull.type].weapons.map(()=>true);
+ infantry.moved=infantry.fired=true;
+ log(s,D[infantry.type].name+' captured an abandoned '+D[hull.type].name+'. Supply service required to restore mobility.');
+ s.events.push({kind:'claimed',id:hull.id,x:hull.x,y:hull.y,team:hull.team});
+ check(s);return true;
 }
 function overwatch(s,u){
  if(!u||s.phase==='deployment'||s.result||s.side!==u.team||u.hp<=0||u.carried||u.fired||u.moved||u.landed||pinned(s,u)||!u.ammo.some((n,i)=>n>0&&!u.used[i]))return false;
@@ -1022,5 +1043,5 @@ for(const d of Object.values(D)){
  d.ability=navyAbility(d);abilities[d.id]=d.ability;
 }
 // Navy is a separate long-range branch; land-unit balance clamps must not apply to ships.
-root.Atlas={objectivePressure,hasSpotter,moraleMax,resolve,pinned,shake,overwatch,reaction,recoverMorale,fleetEscort,navalFireControl,batteryCoverageAt,groundHeight,elevation,rangeElevation,enemyOrder,commandIntel,operationDescriptions,specialOperations,withdraw,forecast,launch,flight,income,capacity,navalMap,tileVisible,visibleTo,lineOfSight,families,abilities,abilityError,useAbility,moveBudget,smoke,baseService,recruitError,freshProfile,purchase,train,deckError,weapon,canFire,selectWeapon,rangeTiles,reload,starters,D,chapters,missions,objectiveNames,make,tile,at,has,dist,reach,move,canAttack,damage,attack,capture,support,load,unload,recruit,alive,log,check,beginEnemy,ai,beginPlayer,visible,unlock,add,passable};if(typeof module!=='undefined')module.exports=root.Atlas;
+root.Atlas={claimVehicle,objectivePressure,hasSpotter,moraleMax,resolve,pinned,shake,overwatch,reaction,recoverMorale,fleetEscort,navalFireControl,batteryCoverageAt,groundHeight,elevation,rangeElevation,enemyOrder,commandIntel,operationDescriptions,specialOperations,withdraw,forecast,launch,flight,income,capacity,navalMap,tileVisible,visibleTo,lineOfSight,families,abilities,abilityError,useAbility,moveBudget,smoke,baseService,recruitError,freshProfile,purchase,train,deckError,weapon,canFire,selectWeapon,rangeTiles,reload,starters,D,chapters,missions,objectiveNames,make,tile,at,has,dist,reach,move,canAttack,damage,attack,capture,support,load,unload,recruit,alive,log,check,beginEnemy,ai,beginPlayer,visible,unlock,add,passable};if(typeof module!=='undefined')module.exports=root.Atlas;
 })(typeof window!=='undefined'?window:globalThis);
